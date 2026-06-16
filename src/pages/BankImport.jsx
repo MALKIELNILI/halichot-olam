@@ -37,6 +37,11 @@ function extractName(desc, isIncome) {
   return desc;
 }
 
+// כינויים קבועים: שם בנק → שם אמיתי
+const ALIASES = {
+  'בובוייב עי': 'עמנואל בבייב',
+};
+
 // שמות ארגונים — לא להתאים לאנשים פרטיים
 const ORG_NAMES = ['תפארת מישאל', 'torah chesed', 'yad yosef'];
 
@@ -123,7 +128,8 @@ export default function BankImport() {
           dataRows++;
 
           const isIncome  = amount > 0;
-          const name      = extractName(desc, isIncome);
+          const rawName   = extractName(desc, isIncome);
+          const name      = ALIASES[rawName] || rawName;
           const matched   = isIncome ? fuzzyMatch(name, donorNames) : fuzzyMatch(name, scholarNames);
           const ref       = String(row[5] || '').trim();
           const category  = isIncome ? '' : autoCategory(desc);
