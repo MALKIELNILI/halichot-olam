@@ -18,6 +18,7 @@ export default function Expenses() {
   const [filterCat, setFilterCat] = useState('');
   const [search, setSearch] = useState('');
   const [scholarSearch, setScholarSearch] = useState('');
+  const [expandNote, setExpandNote] = useState(null);
 
   const openAdd = () => { setForm(EMPTY); setEditId(null); setScholarSearch(''); setModal(true); };
   const openEdit = (e) => { setForm({ ...EMPTY, ...e }); setEditId(e.id); setScholarSearch(''); setModal(true); };
@@ -112,7 +113,17 @@ export default function Expenses() {
                     <td>{e.payee || '—'}</td>
                     <td className="amount-negative">{formatILS(e.amount)}</td>
                     <td style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>{e.bankRef || e.reference || '—'}</td>
-                    <td style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>{e.notes}</td>
+                    <td style={{ maxWidth: 160 }}>
+                      {e.notes
+                        ? expandNote === e.id
+                          ? <span style={{ fontSize: '0.8rem', color: 'var(--gray-600)', cursor: 'pointer' }} onClick={() => setExpandNote(null)}>
+                              {e.notes} <span style={{ color: 'var(--navy)', fontWeight: 700 }}>▲</span>
+                            </span>
+                          : <span title={e.notes} style={{ cursor: 'pointer', color: 'var(--gray-400)', fontSize: '0.85rem' }} onClick={() => setExpandNote(e.id)}>
+                              📝
+                            </span>
+                        : <span style={{ color: 'var(--gray-300)' }}>—</span>}
+                    </td>
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button className="btn btn-outline btn-sm" onClick={() => openEdit(e)}>עריכה</button>

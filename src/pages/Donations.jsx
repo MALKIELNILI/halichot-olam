@@ -180,6 +180,7 @@ export default function Donations() {
   const [acOpen, setAcOpen] = useState(false);
   const [acQuery, setAcQuery] = useState('');
   const [receiptDonation, setReceiptDonation] = useState(null);
+  const [expandNote, setExpandNote] = useState(null);
   const acRef = useRef(null);
 
   useEffect(() => {
@@ -306,7 +307,17 @@ export default function Donations() {
                     <td className="amount-positive">{formatILS(d.amountILS)}</td>
                     <td style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>{d.bankRef || d.reference || '—'}</td>
                     <td><span className="badge badge-blue">{d.paymentMethod}</span></td>
-                    <td style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>{d.notes}</td>
+                    <td style={{ maxWidth: 160 }}>
+                      {d.notes
+                        ? expandNote === d.id
+                          ? <span style={{ fontSize: '0.8rem', color: 'var(--gray-600)', cursor: 'pointer' }} onClick={() => setExpandNote(null)}>
+                              {d.notes} <span style={{ color: 'var(--navy)', fontWeight: 700 }}>▲</span>
+                            </span>
+                          : <span title={d.notes} style={{ cursor: 'pointer', color: 'var(--gray-400)', fontSize: '0.85rem' }} onClick={() => setExpandNote(d.id)}>
+                              📝
+                            </span>
+                        : <span style={{ color: 'var(--gray-300)' }}>—</span>}
+                    </td>
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button className="btn btn-outline btn-sm" onClick={() => setReceiptDonation(d)} title="שלח קבלה">📋</button>
