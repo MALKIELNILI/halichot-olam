@@ -121,11 +121,23 @@ export default function BankImport() {
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
+        // זיהוי אוטומטי של שורת ההתחלה — לאומי סטנדרטי (שורה 9) או פורמט ישיר (שורה 1)
+        const isDateVal = (v) => v instanceof Date || (typeof v === 'number' && v > 40000) ||
+          (typeof v === 'string' && /\d{4}-\d{2}-\d{2}/.test(v));
+        const SKIP_WORDS = ['תאריך','חשבון','חברה','תנועות','N/A','עובר ושב','הקודם'];
+        let dataStart = 0;
+        for (let i = 0; i < Math.min(rows.length, 15); i++) {
+          const v0 = String(rows[i][0] || '');
+          if (SKIP_WORDS.some(w => v0.includes(w))) continue;
+          if (isDateVal(rows[i][0])) { dataStart = i; break; }
+        }
+
         const result = [];
         let dataRows = 0;
 
-        for (let i = 9; i < rows.length; i++) {
+        for (let i = dataStart; i < rows.length; i++) {
           const row = rows[i];
+          if (!isDateVal(row[0])) continue;  // דלג על שורות ללא תאריך
           const desc   = String(row[2] || '').trim();
           const amount = parseFloat(row[3] || 0);
           if (!desc && !amount) continue;
@@ -318,8 +330,8 @@ export default function BankImport() {
                 כל השורות מוצגות כולל עמלות.<br/>
                 שורות שכבר יובאו מסומנות <span style={{ color: 'var(--green)', fontWeight: 700 }}>✓ ירוק</span> ולא נבחרות אוטומטית.
               </p>
-              <input type="file" accept=".xlsx,.xls" ref={fileRef} style={{ display: 'none' }} onChange={parseFile} />
-              <button className="btn btn-primary" onClick={() => fileRef.current.click()}>בחר קובץ Excel מהבנק</button>
+              <input type="file" accept=".xlsx,.xls,.ods" ref={fileRef} style={{ display: 'none' }} onChange={parseFile} />
+              <button className="btn btn-primary" onClick={() => fileRef.current.click()}>בחר קובץ Excel / ODS מהבנק</button>
             </div>
           </div>
         )}
