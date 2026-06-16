@@ -24,6 +24,9 @@ function extractName(desc, isIncome) {
   if (isIncome) {
     const m = desc.match(/מ(?:עו"ד\s+|עו״ד\s+)?(.+?)\s+חשבון/);
     if (m) return m[1].trim();
+    // "העברה מ[שם]" ללא "חשבון" — למשל "העברה מתפארת מישאל (ע"ר)"
+    const m2 = desc.match(/^העברה\s+מ(.+?)(?:\s*\(|\s*$)/);
+    if (m2 && m2[1].trim()) return m2[1].trim();
   } else {
     const m1 = desc.match(/ל(.+?)\s+בנק/);
     if (m1) return m1[1].trim();

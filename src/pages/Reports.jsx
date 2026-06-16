@@ -22,6 +22,16 @@ export default function Reports() {
     return [...new Set(keys)].sort().reverse();
   }, [donations, expenses, year]);
 
+  // ── All transactions (detailed) ──
+  const allTxs = useMemo(() => {
+    const filtDon = donations.filter(d => (!year || d.date?.startsWith(year)) && (!month || monthKey(d.date) === month));
+    const filtExp = expenses.filter(e => (!year || e.date?.startsWith(year)) && (!month || monthKey(e.date) === month));
+    return [
+      ...filtDon.map(d => ({ date: d.date, type: 'הכנסה', desc: d.donorName, ref: d.bankRef || d.reference || '', amount: parseFloat(d.amountILS || 0) })),
+      ...filtExp.map(e => ({ date: e.date, type: 'הוצאה', desc: e.description, ref: e.bankRef || e.reference || '', amount: parseFloat(e.amount || 0) })),
+    ].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  }, [donations, expenses, year, month]);
+
   // ── Monthly breakdown ──
   const monthlyData = useMemo(() => {
     return months.map(mk => {
@@ -69,11 +79,11 @@ export default function Reports() {
     const rows = [
       ...filtDon.map(d => ({
         date: d.date, type: 'הכנסה', category: 'תרומה',
-        desc: d.donorName, ref: d.reference || '', amount: `+${parseFloat(d.amountILS || 0).toLocaleString('he-IL')}`,
+        desc: d.donorName, ref: d.bankRef || d.reference || '', amount: `+${parseFloat(d.amountILS || 0).toLocaleString('he-IL')}`,
       })),
       ...filtExp.map(e => ({
         date: e.date, type: 'הוצאה', category: e.category,
-        desc: e.description, ref: e.reference || '', amount: `-${parseFloat(e.amount || 0).toLocaleString('he-IL')}`,
+        desc: e.description, ref: e.bankRef || e.reference || '', amount: `-${parseFloat(e.amount || 0).toLocaleString('he-IL')}`,
       })),
     ].sort((a, b) => a.date.localeCompare(b.date));
 
@@ -186,7 +196,7 @@ export default function Reports() {
 
       <div className="page-body">
         <div className="tabs">
-          {[['monthly','סיכום חודשי'],['donors','תורמים'],['categories','קטגוריות הוצאה']].map(([v,l]) => (
+          {[['monthly','סיכום חודשי'],['donors','תורמים'],['categories','קטגוריות הוצאה'],['transactions','פירוט תנועות']].map(([v,l]) => (
             <button key={v} className={`tab ${tab === v ? 'active' : ''}`} onClick={() => setTab(v)}>{l}</button>
           ))}
         </div>
@@ -272,6 +282,55 @@ export default function Reports() {
                     </tr>
                   ))}
                 </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {tab === 'transactions' && (
+          <div className="card">
+            <div className="card-header">
+              <h2>פירוט תנועות – {month ? heMonthYear(month) : year} ({allTxs.length})</h2>
+            </div>
+            <div className="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>תאריך</th>
+                    <th>סוג</th>
+                    <th>תיאור</th>
+                    <th>אסמכתה</th>
+                    <th>סכום</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allTxs.length === 0 && (
+                    <tr><td colSpan={5}><div className="empty-state"><p>אין תנועות לתקופה זו</p></div></td></tr>
+                  )}
+                  {allTxs.map((r, i) => (
+                    <tr key={i}>
+                      <td style={{ whiteSpace: 'nowrap', fontSize: '0.88rem' }}>{r.date}</td>
+                      <td style={{ color: r.type === 'הכנסה' ? 'var(--green)' : 'var(--red)', fontWeight: 700, fontSize: '0.82rem' }}>{r.type}</td>
+                      <td style={{ fontWeight: 600 }}>{r.desc}</td>
+                      <td style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>{r.ref || '—'}</td>
+                      <td className={r.type === 'הכנסה' ? 'amount-positive' : 'amount-negative'}>
+                        {r.type === 'הכנסה' ? '+' : '-'}{formatILS(r.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                {allTxs.length > 0 && (
+                  <tfoot>
+                    <tr style={{ background: 'var(--gray-50)', fontWeight: 700 }}>
+                      <td colSpan={4} style={{ padding: '12px 16px' }}>
+                        סה"כ הכנסות: <span className="amount-positive">{formatILS(allTxs.filter(r => r.type === 'הכנסה').reduce((s,r) => s+r.amount, 0))}</span>
+                        &nbsp;|&nbsp;
+                        סה"כ הוצאות: <span className="amount-negative">{formatILS(allTxs.filter(r => r.type === 'הוצאה').reduce((s,r) => s+r.amount, 0))}</span>
+                      </td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           </div>

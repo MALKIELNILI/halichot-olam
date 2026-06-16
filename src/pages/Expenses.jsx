@@ -101,7 +101,7 @@ export default function Expenses() {
                     <td style={{ fontWeight: 600 }}>{e.description}</td>
                     <td>{e.payee || '—'}</td>
                     <td className="amount-negative">{formatILS(e.amount)}</td>
-                    <td style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>{e.reference || '—'}</td>
+                    <td style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>{e.bankRef || e.reference || '—'}</td>
                     <td style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>{e.notes}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>

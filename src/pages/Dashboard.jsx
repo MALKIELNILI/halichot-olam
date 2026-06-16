@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useDonations, useExpenses, useScholars } from '../hooks/useFirestore';
 import { formatILS, sumField, monthKey, heMonthYear } from '../utils/helpers';
 
@@ -39,10 +39,6 @@ export default function Dashboard() {
     return months;
   }, [donations, expenses]);
 
-  const [showAllDon, setShowAllDon] = useState(false);
-  const [showAllExp, setShowAllExp] = useState(false);
-  const recentDonations = showAllDon ? donations : donations.slice(0, 10);
-  const recentExpenses  = showAllExp ? expenses  : expenses.slice(0, 10);
 
   return (
     <>
@@ -116,25 +112,21 @@ export default function Dashboard() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
           <div className="card">
             <div className="card-header">
-              <h2>תרומות אחרונות</h2>
-              {donations.length > 10 && (
-                <button className="btn btn-outline btn-sm" onClick={() => setShowAllDon(v => !v)}>
-                  {showAllDon ? 'הצג פחות' : `כל ${donations.length} התרומות`}
-                </button>
-              )}
+              <h2>תרומות ({donations.length})</h2>
             </div>
             <div className="table-wrapper">
               <table>
-                <thead><tr><th>תורם</th><th>סכום</th><th>תאריך</th></tr></thead>
+                <thead><tr><th>תורם</th><th>סכום</th><th>תאריך</th><th>אסמכתה</th></tr></thead>
                 <tbody>
-                  {recentDonations.length === 0 && (
-                    <tr><td colSpan={3} className="empty-state"><p>אין תרומות עדיין</p></td></tr>
+                  {donations.length === 0 && (
+                    <tr><td colSpan={4} className="empty-state"><p>אין תרומות עדיין</p></td></tr>
                   )}
-                  {recentDonations.map(d => (
+                  {donations.map(d => (
                     <tr key={d.id}>
                       <td style={{ fontWeight: 600 }}>{d.donorName}</td>
                       <td className="amount-positive">{formatILS(d.amountILS)}</td>
                       <td style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>{d.date}</td>
+                      <td style={{ color: 'var(--gray-500)', fontSize: '0.8rem' }}>{d.bankRef || d.reference || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -144,25 +136,21 @@ export default function Dashboard() {
 
           <div className="card">
             <div className="card-header">
-              <h2>הוצאות אחרונות</h2>
-              {expenses.length > 10 && (
-                <button className="btn btn-outline btn-sm" onClick={() => setShowAllExp(v => !v)}>
-                  {showAllExp ? 'הצג פחות' : `כל ${expenses.length} ההוצאות`}
-                </button>
-              )}
+              <h2>הוצאות ({expenses.length})</h2>
             </div>
             <div className="table-wrapper">
               <table>
-                <thead><tr><th>תיאור</th><th>סכום</th><th>תאריך</th></tr></thead>
+                <thead><tr><th>תיאור</th><th>סכום</th><th>תאריך</th><th>אסמכתה</th></tr></thead>
                 <tbody>
-                  {recentExpenses.length === 0 && (
-                    <tr><td colSpan={3} className="empty-state"><p>אין הוצאות עדיין</p></td></tr>
+                  {expenses.length === 0 && (
+                    <tr><td colSpan={4} className="empty-state"><p>אין הוצאות עדיין</p></td></tr>
                   )}
-                  {recentExpenses.map(e => (
+                  {expenses.map(e => (
                     <tr key={e.id}>
                       <td style={{ fontWeight: 600 }}>{e.description}</td>
                       <td className="amount-negative">{formatILS(e.amount)}</td>
                       <td style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>{e.date}</td>
+                      <td style={{ color: 'var(--gray-500)', fontSize: '0.8rem' }}>{e.bankRef || e.reference || '—'}</td>
                     </tr>
                   ))}
                 </tbody>

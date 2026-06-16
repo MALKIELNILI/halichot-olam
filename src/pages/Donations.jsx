@@ -304,7 +304,7 @@ export default function Donations() {
                     <td style={{ fontWeight: 600 }}>{d.donorName}</td>
                     <td className="amount-positive">{d.amount} {d.currency}</td>
                     <td className="amount-positive">{formatILS(d.amountILS)}</td>
-                    <td style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>{d.reference || '—'}</td>
+                    <td style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>{d.bankRef || d.reference || '—'}</td>
                     <td><span className="badge badge-blue">{d.paymentMethod}</span></td>
                     <td style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>{d.notes}</td>
                     <td>
