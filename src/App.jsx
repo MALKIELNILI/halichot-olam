@@ -1,5 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
+
+const DONORS_KEY = 'halichot_olam_donors';
+const SEEDED_KEY = 'halichot_olam_seeded';
+
+async function seedDonors() {
+  if (localStorage.getItem(SEEDED_KEY)) return;
+  const existing = JSON.parse(localStorage.getItem(DONORS_KEY) || '[]');
+  if (existing.length > 0) { localStorage.setItem(SEEDED_KEY, '1'); return; }
+  try {
+    const res = await fetch(import.meta.env.BASE_URL + 'donors_import.json');
+    const donors = await res.json();
+    localStorage.setItem(DONORS_KEY, JSON.stringify(donors));
+    localStorage.setItem(SEEDED_KEY, '1');
+    window.dispatchEvent(new CustomEvent('ls-update', { detail: 'donors' }));
+  } catch {}
+}
 import Dashboard from './pages/Dashboard';
 import Donations from './pages/Donations';
 import Expenses from './pages/Expenses';
@@ -61,6 +77,8 @@ function Sidebar({ mobileOpen, onClose }) {
 
 function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => { seedDonors(); }, []);
 
   return (
     <BrowserRouter basename="/halichot-olam">
