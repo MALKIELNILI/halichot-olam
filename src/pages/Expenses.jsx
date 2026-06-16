@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useExpenses, useScholars } from '../hooks/useFirestore';
 import { formatILS, todayISO, EXPENSE_CATEGORIES, monthKey, heMonthYear } from '../utils/helpers';
 
@@ -16,10 +16,12 @@ export default function Expenses() {
   const [editId, setEditId] = useState(null);
   const [filterMonth, setFilterMonth] = useState('');
   const [filterCat, setFilterCat] = useState('');
+  const [search, setSearch] = useState('');
+  const [scholarSearch, setScholarSearch] = useState('');
 
-  const openAdd = () => { setForm(EMPTY); setEditId(null); setModal(true); };
-  const openEdit = (e) => { setForm({ ...EMPTY, ...e }); setEditId(e.id); setModal(true); };
-  const close = () => setModal(false);
+  const openAdd = () => { setForm(EMPTY); setEditId(null); setScholarSearch(''); setModal(true); };
+  const openEdit = (e) => { setForm({ ...EMPTY, ...e }); setEditId(e.id); setScholarSearch(''); setModal(true); };
+  const close = () => { setModal(false); setScholarSearch(''); };
 
   const save = async () => {
     if (!form.description.trim()) return alert('יש להזין תיאור');
@@ -38,9 +40,10 @@ export default function Expenses() {
 
   const months = [...new Set(expenses.map(e => monthKey(e.date)).filter(Boolean))].sort().reverse();
   const filtered = expenses.filter(e => {
-    const matchMonth = !filterMonth || monthKey(e.date) === filterMonth;
-    const matchCat   = !filterCat   || e.category === filterCat;
-    return matchMonth && matchCat;
+    const matchMonth  = !filterMonth || monthKey(e.date) === filterMonth;
+    const matchCat    = !filterCat   || e.category === filterCat;
+    const matchSearch = !search || e.description?.includes(search) || e.payee?.includes(search) || e.notes?.includes(search);
+    return matchMonth && matchCat && matchSearch;
   });
 
   const total = filtered.reduce((s, e) => s + parseFloat(e.amount || 0), 0);
@@ -57,15 +60,22 @@ export default function Expenses() {
 
       <div className="page-body">
         <div className="filter-bar">
-          <select className="form-control" value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ maxWidth: 180 }}>
+          <input
+            className="form-control"
+            placeholder="חיפוש לפי תיאור / מוטב / הערות..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ maxWidth: 250 }}
+          />
+          <select className="form-control" value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ maxWidth: 160 }}>
             <option value="">כל החודשים</option>
             {months.map(m => <option key={m} value={m}>{heMonthYear(m)}</option>)}
           </select>
-          <select className="form-control" value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ maxWidth: 200 }}>
+          <select className="form-control" value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ maxWidth: 180 }}>
             <option value="">כל הקטגוריות</option>
             {EXPENSE_CATEGORIES.map(c => <option key={c}>{c}</option>)}
           </select>
-          {(filterMonth || filterCat) && (
+          {(filterMonth || filterCat || search) && (
             <div style={{ marginRight: 'auto', fontWeight: 600, color: 'var(--red)' }}>
               סה"כ: {formatILS(total)}
             </div>
@@ -150,21 +160,35 @@ export default function Expenses() {
                 {form.category === 'מלגות אברכים' && (
                   <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                     <label className="form-label">בחר אברך</label>
-                    <select className="form-control" value={form.scholarId} onChange={e => {
-                      const s = scholars.find(x => x.id === e.target.value);
-                      setForm(f => ({
-                        ...f, scholarId: e.target.value,
-                        description: s ? `מלגה – ${s.name}` : f.description,
-                        amount: s ? s.stipendAmount : f.amount,
-                        payee: s ? s.name : f.payee,
-                      }));
-                    }}>
+                    <input
+                      className="form-control"
+                      placeholder="הקש שם לחיפוש..."
+                      value={scholarSearch}
+                      onChange={e => setScholarSearch(e.target.value)}
+                      style={{ marginBottom: 6 }}
+                    />
+                    <select
+                      className="form-control"
+                      value={form.scholarId}
+                      size={Math.min(6, scholars.filter(s => s.active !== false && (!scholarSearch || s.name.includes(scholarSearch))).length + 1)}
+                      onChange={e => {
+                        const s = scholars.find(x => x.id === e.target.value);
+                        setForm(f => ({
+                          ...f, scholarId: e.target.value,
+                          description: s ? `מלגה – ${s.name}` : f.description,
+                          amount: s ? s.stipendAmount : f.amount,
+                          payee: s ? s.name : f.payee,
+                        }));
+                      }}
+                    >
                       <option value="">— בחר אברך —</option>
-                      {scholars.filter(s => s.active !== false).map(s => (
-                        <option key={s.id} value={s.id}>{s.name} ({formatILS(s.stipendAmount)})</option>
-                      ))}
+                      {scholars
+                        .filter(s => s.active !== false && (!scholarSearch || s.name.includes(scholarSearch)))
+                        .map(s => (
+                          <option key={s.id} value={s.id}>{s.name} ({formatILS(s.stipendAmount)})</option>
+                        ))}
                     </select>
-                    <div className="form-hint">בחירת אברך תמלא אוטומטית את הסכום והתיאור</div>
+                    <div className="form-hint">הקש שם לסינון, בחר מהרשימה — יתמלא אוטומטית</div>
                   </div>
                 )}
 
