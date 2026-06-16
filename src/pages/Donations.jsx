@@ -10,6 +10,155 @@ const EMPTY = {
 
 const PAYMENT_METHODS = ['העברה בנקאית', 'מזומן', 'צ׳ק', 'כרטיס אשראי', 'PayPal', 'Zelle', 'Wire Transfer', 'אחר'];
 
+const DEFAULT_KEY = 'halichot_receipt_default';
+const getDefault = () => localStorage.getItem(DEFAULT_KEY) || 'whatsapp';
+const setDefault = (v) => localStorage.setItem(DEFAULT_KEY, v);
+
+function receiptText(d) {
+  const amt = parseFloat(d.amountILS || d.amount || 0).toLocaleString('he-IL');
+  const ref = d.reference ? `\nאסמכתא: ${d.reference}` : '';
+  return `שלום ${d.donorName},\n\nתודה רבה על תרומתך הנדיבה לעמותת *תפארת מישאל – הליכות עולם*.\n\n💰 סכום: ₪${amt}\n📅 תאריך: ${d.date}${ref}\n💳 אמצעי תשלום: ${d.paymentMethod || ''}\n\nיהי רצון שתזכה לראות פרי ברכה מתרומתך.\n\nבברכה,\nתפארת מישאל – הליכות עולם`;
+}
+
+function sendWhatsApp(d, donors) {
+  const donor = donors.find(x => x.id === d.donorId);
+  const phone = donor?.phone?.replace(/\D/g, '');
+  const text = encodeURIComponent(receiptText(d));
+  const url = phone ? `https://wa.me/972${phone.replace(/^0/, '')}?text=${text}` : `https://wa.me/?text=${text}`;
+  window.open(url, '_blank');
+}
+
+function printReceipt(d) {
+  const amt = parseFloat(d.amountILS || d.amount || 0).toLocaleString('he-IL');
+  const ref = d.reference ? `<tr><td>אסמכתא</td><td>${d.reference}</td></tr>` : '';
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>קבלה – תפארת מישאל</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Heebo', sans-serif; direction: rtl; color: #1a2744; background: #fff; padding: 40px; }
+    .receipt { max-width: 480px; margin: auto; border: 2px solid #b8973a; border-radius: 12px; overflow: hidden; }
+    .header { background: #1a2744; color: white; padding: 24px; text-align: center; }
+    .org { font-size: 22px; font-weight: 700; }
+    .org-sub { font-size: 13px; opacity: 0.7; margin-top: 4px; }
+    .receipt-title { background: #b8973a; color: white; text-align: center; padding: 10px; font-size: 18px; font-weight: 700; letter-spacing: 2px; }
+    .body { padding: 28px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    td { padding: 10px 8px; border-bottom: 1px solid #e2e0dc; font-size: 15px; }
+    td:first-child { color: #6b6762; width: 40%; }
+    td:last-child { font-weight: 600; }
+    .amount-row td:last-child { font-size: 22px; color: #2a6b4a; font-weight: 700; }
+    .footer { text-align: center; padding: 16px; font-size: 12px; color: #9e9b95; border-top: 1px solid #e2e0dc; }
+    .thankyou { text-align: center; padding: 20px 28px 0; font-size: 14px; color: #6b6762; line-height: 1.7; }
+    @media print { body { padding: 0; } }
+  </style>
+</head>
+<body>
+  <div class="receipt">
+    <div class="header">
+      <div class="org">תפארת מישאל</div>
+      <div class="org-sub">הליכות עולם · צונץ 11, תל אביב</div>
+    </div>
+    <div class="receipt-title">קבלה על תרומה</div>
+    <div class="body">
+      <table>
+        <tr><td>שם התורם</td><td>${d.donorName}</td></tr>
+        <tr class="amount-row"><td>סכום התרומה</td><td>₪${amt}</td></tr>
+        <tr><td>תאריך</td><td>${d.date}</td></tr>
+        <tr><td>אמצעי תשלום</td><td>${d.paymentMethod || '—'}</td></tr>
+        ${ref}
+        ${d.notes ? `<tr><td>הערות</td><td>${d.notes}</td></tr>` : ''}
+      </table>
+    </div>
+    <div class="thankyou">יהי רצון שתזכה לראות פרי ברכה מתרומתך הנדיבה.</div>
+    <div class="footer">הופק: ${new Date().toLocaleDateString('he-IL')} · תפארת מישאל – הליכות עולם</div>
+  </div>
+  <script>window.onload = () => window.print();</script>
+</body>
+</html>`);
+  win.document.close();
+}
+
+function ReceiptModal({ donation, donors, onClose }) {
+  const [def, setDef] = useState(getDefault());
+
+  const changeDefault = (v) => { setDefault(v); setDef(v); };
+
+  const primary   = def === 'whatsapp' ? 'whatsapp' : 'print';
+  const secondary = def === 'whatsapp' ? 'print'    : 'whatsapp';
+
+  const doWA    = () => sendWhatsApp(donation, donors);
+  const doPrint = () => printReceipt(donation);
+
+  const btnLabel = { whatsapp: '📱 שלח בוואטסאפ', print: '🖨️ הדפס קבלה' };
+  const btnAction = { whatsapp: doWA, print: doPrint };
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth: 400 }}>
+        <div className="modal-header">
+          <h2>📋 שלח קבלה לתורם</h2>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        <div className="modal-body">
+          <div style={{ background: 'var(--gray-50)', borderRadius: 8, padding: '14px 16px', marginBottom: 20, fontSize: '0.92rem' }}>
+            <div style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: 6 }}>{donation.donorName}</div>
+            <div style={{ color: 'var(--green)', fontWeight: 600, fontSize: '1.1rem' }}>{formatILS(donation.amountILS || donation.amount)}</div>
+            <div style={{ color: 'var(--gray-600)', fontSize: '0.85rem', marginTop: 4 }}>{donation.date} · {donation.paymentMethod}</div>
+            {donation.reference && <div style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>אסמכתא: {donation.reference}</div>}
+          </div>
+
+          {/* Primary button */}
+          <button
+            className="btn btn-primary"
+            style={{ width: '100%', padding: '12px', fontSize: '1rem', marginBottom: 10 }}
+            onClick={btnAction[primary]}
+          >
+            {btnLabel[primary]}
+            <span style={{ fontSize: '0.75rem', opacity: 0.8, marginRight: 6 }}>(ברירת מחדל)</span>
+          </button>
+
+          {/* Secondary button */}
+          <button
+            className="btn btn-outline"
+            style={{ width: '100%', padding: '11px', fontSize: '0.95rem', marginBottom: 18 }}
+            onClick={btnAction[secondary]}
+          >
+            {btnLabel[secondary]}
+          </button>
+
+          {/* Default setting */}
+          <div style={{ borderTop: '1px solid var(--gray-200)', paddingTop: 14 }}>
+            <div style={{ fontSize: '0.82rem', color: 'var(--gray-600)', marginBottom: 8 }}>ברירת מחדל:</div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              {['whatsapp','print'].map(v => (
+                <label key={v} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '0.88rem' }}>
+                  <input type="radio" name="def" checked={def === v} onChange={() => changeDefault(v)} />
+                  {v === 'whatsapp' ? '📱 וואטסאפ' : '🖨️ הדפסה'}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-outline" onClick={onClose}>סגור</button>
+          <button
+            className="btn btn-primary"
+            onClick={() => { doWA(); doPrint(); }}
+            style={{ fontSize: '0.88rem' }}
+          >
+            שלח גם וגם
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Donations() {
   const { data: donations, loading, add, update, remove } = useDonations();
   const { data: donors } = useDonors();
@@ -20,9 +169,9 @@ export default function Donations() {
   const [filterMonth, setFilterMonth] = useState('');
   const [acOpen, setAcOpen] = useState(false);
   const [acQuery, setAcQuery] = useState('');
+  const [receiptDonation, setReceiptDonation] = useState(null);
   const acRef = useRef(null);
 
-  // Close autocomplete on outside click
   useEffect(() => {
     const handler = e => { if (acRef.current && !acRef.current.contains(e.target)) setAcOpen(false); };
     document.addEventListener('mousedown', handler);
@@ -38,7 +187,6 @@ export default function Donations() {
   };
   const close = () => setModal(false);
 
-  // Autocomplete suggestions
   const acSuggestions = donors.filter(d =>
     acQuery.length > 0 &&
     (d.name?.includes(acQuery) || d.phone?.includes(acQuery))
@@ -49,7 +197,6 @@ export default function Donations() {
       ...f,
       donorName: donor.name,
       donorId: donor.id,
-      // If recurring donor, pre-fill amount
       ...(donor.isRecurring ? {
         amount: donor.recurringAmount || '',
         currency: donor.recurringCurrency || '₪',
@@ -65,13 +212,19 @@ export default function Donations() {
     if (!form.amount) return alert('יש להזין סכום');
     if (!form.date) return alert('יש להזין תאריך');
     const amountILS = form.currency === '₪' ? form.amount : (form.amountILS || form.amount);
-    await (editId ? update(editId, { ...form, amountILS }) : add({ ...form, amountILS }));
-    close();
+    const saved = { ...form, amountILS };
+    if (editId) {
+      await update(editId, saved);
+      close();
+    } else {
+      await add(saved);
+      close();
+      setReceiptDonation(saved);
+    }
   };
 
   const del = async (id) => { if (window.confirm('למחוק תרומה זו?')) await remove(id); };
 
-  // Filters
   const months = [...new Set(donations.map(d => monthKey(d.date)).filter(Boolean))].sort().reverse();
   const filtered = donations.filter(d => {
     const matchSearch = !search || d.donorName?.includes(search);
@@ -92,7 +245,6 @@ export default function Donations() {
       </div>
 
       <div className="page-body">
-        {/* Filters */}
         <div className="filter-bar">
           <input
             className="form-control"
@@ -145,6 +297,7 @@ export default function Donations() {
                     <td style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>{d.notes}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
+                        <button className="btn btn-outline btn-sm" onClick={() => setReceiptDonation(d)} title="שלח קבלה">📋</button>
                         <button className="btn btn-outline btn-sm" onClick={() => openEdit(d)}>עריכה</button>
                         <button className="btn btn-danger btn-sm" onClick={() => del(d.id)}>מחק</button>
                       </div>
@@ -166,7 +319,7 @@ export default function Donations() {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Add/Edit modal */}
       {modal && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && close()}>
           <div className="modal">
@@ -176,8 +329,6 @@ export default function Donations() {
             </div>
             <div className="modal-body">
               <div className="form-grid" style={{ gap: 14 }}>
-
-                {/* Autocomplete donor */}
                 <div className="form-group" ref={acRef}>
                   <label className="form-label">שם תורם *</label>
                   <div className="autocomplete-wrapper">
@@ -205,13 +356,11 @@ export default function Donations() {
                   <div className="form-hint">הקש שם לחיפוש, או לחץ פעמיים לבחירה מהרשימה</div>
                 </div>
 
-                {/* Date */}
                 <div className="form-group">
                   <label className="form-label">תאריך *</label>
                   <input className="form-control" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
                 </div>
 
-                {/* Amount + currency */}
                 <div className="form-grid form-grid-2" style={{ gap: 10 }}>
                   <div className="form-group">
                     <label className="form-label">סכום *</label>
@@ -228,7 +377,6 @@ export default function Donations() {
                   </div>
                 </div>
 
-                {/* If non-ILS, show ILS equivalent field */}
                 {form.currency !== '₪' && (
                   <div className="form-group">
                     <label className="form-label">סכום לאחר המרה לש"ח *</label>
@@ -243,13 +391,11 @@ export default function Donations() {
                   </div>
                 )}
 
-                {/* Reference */}
                 <div className="form-group">
                   <label className="form-label">מספר אסמכתא</label>
                   <input className="form-control" value={form.reference} onChange={e => setForm(f => ({ ...f, reference: e.target.value }))} placeholder="מספר אסמכתא / אישור" />
                 </div>
 
-                {/* Payment method */}
                 <div className="form-group">
                   <label className="form-label">אמצעי תשלום</label>
                   <select className="form-control" value={form.paymentMethod} onChange={e => setForm(f => ({ ...f, paymentMethod: e.target.value }))}>
@@ -257,7 +403,6 @@ export default function Donations() {
                   </select>
                 </div>
 
-                {/* Notes */}
                 <div className="form-group">
                   <label className="form-label">הערות</label>
                   <textarea className="form-control" rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
@@ -270,6 +415,15 @@ export default function Donations() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Receipt modal */}
+      {receiptDonation && (
+        <ReceiptModal
+          donation={receiptDonation}
+          donors={donors}
+          onClose={() => setReceiptDonation(null)}
+        />
       )}
     </>
   );
