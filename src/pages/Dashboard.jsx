@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useDonations, useExpenses, useScholars } from '../hooks/useFirestore';
 import { formatILS, sumField, monthKey, heMonthYear } from '../utils/helpers';
 
@@ -39,8 +39,10 @@ export default function Dashboard() {
     return months;
   }, [donations, expenses]);
 
-  const recentDonations = donations.slice(0, 5);
-  const recentExpenses  = expenses.slice(0, 5);
+  const [showAllDon, setShowAllDon] = useState(false);
+  const [showAllExp, setShowAllExp] = useState(false);
+  const recentDonations = showAllDon ? donations : donations.slice(0, 10);
+  const recentExpenses  = showAllExp ? expenses  : expenses.slice(0, 10);
 
   return (
     <>
@@ -113,7 +115,14 @@ export default function Dashboard() {
         {/* Recent activity */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
           <div className="card">
-            <div className="card-header"><h2>תרומות אחרונות</h2></div>
+            <div className="card-header">
+              <h2>תרומות אחרונות</h2>
+              {donations.length > 10 && (
+                <button className="btn btn-outline btn-sm" onClick={() => setShowAllDon(v => !v)}>
+                  {showAllDon ? 'הצג פחות' : `כל ${donations.length} התרומות`}
+                </button>
+              )}
+            </div>
             <div className="table-wrapper">
               <table>
                 <thead><tr><th>תורם</th><th>סכום</th><th>תאריך</th></tr></thead>
@@ -134,7 +143,14 @@ export default function Dashboard() {
           </div>
 
           <div className="card">
-            <div className="card-header"><h2>הוצאות אחרונות</h2></div>
+            <div className="card-header">
+              <h2>הוצאות אחרונות</h2>
+              {expenses.length > 10 && (
+                <button className="btn btn-outline btn-sm" onClick={() => setShowAllExp(v => !v)}>
+                  {showAllExp ? 'הצג פחות' : `כל ${expenses.length} ההוצאות`}
+                </button>
+              )}
+            </div>
             <div className="table-wrapper">
               <table>
                 <thead><tr><th>תיאור</th><th>סכום</th><th>תאריך</th></tr></thead>
