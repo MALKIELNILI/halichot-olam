@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
+import { HashRouter, Routes, Route, NavLink } from 'react-router-dom';
 
 const SEEDED_KEY = 'halichot_olam_seeded_v2';
 
@@ -88,7 +88,7 @@ function App() {
   useEffect(() => { seedAll(); }, []);
 
   return (
-    <BrowserRouter basename="/halichot-olam">
+    <HashRouter>
       <div className="app-shell">
         <header className="mobile-header">
           <span style={{ width: 40 }} />
@@ -109,7 +109,7 @@ function App() {
           </Routes>
         </main>
       </div>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
