@@ -89,8 +89,8 @@ export default function BankImport() {
 
   const { data: donors,    add: addDonor    } = useDonors();
   const { data: scholars                     } = useScholars();
-  const { data: donations, add: addDonation  } = useDonations();
-  const { data: expenses,  add: addExpense   } = useExpenses();
+  const { data: donations,      add: addDonation } = useDonations();
+  const { data: savedExpenses, add: addExpense  } = useExpenses();
 
   const donorNames   = donors.map(d => d.name);
   const scholarNames = scholars.map(s => s.name);
@@ -98,12 +98,12 @@ export default function BankImport() {
   // אסמכתאות שכבר מיובאות
   const importedRefs = useMemo(() => {
     const refs = new Set();
-    [...donations, ...expenses].forEach(r => {
+    [...donations, ...savedExpenses].forEach(r => {
       const ref = r.bankRef || extractRef(r.notes);
       if (ref) refs.add(ref);
     });
     return refs;
-  }, [donations, expenses]);
+  }, [donations, savedExpenses]);
 
   const parseFile = (e) => {
     const file = e.target.files[0];
