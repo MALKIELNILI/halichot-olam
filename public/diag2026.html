@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head><meta charset="UTF-8">
+<title>אבחון 2026</title>
+<style>
+  body { font-family: Arial, sans-serif; direction: rtl; padding: 30px; background: #f5f5f5; }
+  .box { background: white; border-radius: 10px; padding: 24px; max-width: 620px; margin: auto; box-shadow: 0 2px 10px #0002; }
+  h2 { color: #1a2744; margin-top: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 0.92rem; }
+  th { background: #1a2744; color: white; padding: 6px 10px; text-align: right; }
+  td { padding: 5px 10px; border-bottom: 1px solid #eee; }
+  tr:last-child td { border-bottom: none; }
+  .num { text-align: left; font-family: monospace; }
+  .section { margin-top: 20px; }
+  h3 { color: #333; font-size: 1rem; margin-bottom: 6px; }
+  .total { background: #e8f5e9; font-weight: bold; }
+  .warn { background: #fff3cd; padding: 10px; border-radius: 6px; margin-top: 14px; }
+</style>
+</head>
+<body><div class="box">
+  <h2>אבחון נתוני 2026</h2>
+  <div id="out">מחשב...</div>
+</div>
+<script>
+const donations = JSON.parse(localStorage.getItem('halichot_olam_donations') || '[]');
+const expenses  = JSON.parse(localStorage.getItem('halichot_olam_expenses')  || '[]');
+const openingBal = parseFloat(localStorage.getItem('halichot_olam_opening_balance') || '0');
+
+const don26 = donations.filter(x => (x.date||'').startsWith('2026'));
+const exp26 = expenses.filter(x => (x.date||'').startsWith('2026'));
+const donOther = donations.filter(x => !(x.date||'').startsWith('2026'));
+const expOther = expenses.filter(x => !(x.date||'').startsWith('2026'));
+
+function sumAmt(arr) { return arr.reduce((s,x) => s + parseFloat(x.amount||0), 0); }
+function fmt(n) { return n.toLocaleString('he-IL', {minimumFractionDigits: 0, maximumFractionDigits: 0}) + ' ₪'; }
+
+// group 2026 by month
+const donByMonth = {}, expByMonth = {};
+for (const x of don26) {
+  const m = (x.date||'').slice(0,7);
+  donByMonth[m] = (donByMonth[m]||0) + parseFloat(x.amount||0);
+}
+for (const x of exp26) {
+  const m = (x.date||'').slice(0,7);
+  expByMonth[m] = (expByMonth[m]||0) + parseFloat(x.amount||0);
+}
+
+const months = [...new Set([...Object.keys(donByMonth), ...Object.keys(expByMonth)])].sort();
+let monthRows = '';
+let totalDon26 = 0, totalExp26 = 0;
+for (const m of months) {
+  const d = donByMonth[m]||0, e = expByMonth[m]||0, net = d - e;
+  totalDon26 += d; totalExp26 += e;
+  const netStr = (net >= 0 ? '+' : '') + fmt(net);
+  monthRows += `<tr><td>${m}</td><td class="num">${fmt(d)}</td><td class="num">${fmt(e)}</td><td class="num">${netStr}</td></tr>`;
+}
+const totalNet26 = totalDon26 - totalExp26;
+const netStr26 = (totalNet26 >= 0 ? '+' : '') + fmt(totalNet26);
+
+const totalDonAll = sumAmt(donations), totalExpAll = sumAmt(expenses);
+const appBalance = openingBal + totalDonAll - totalExpAll;
+
+let otherWarn = '';
+if (donOther.length > 0 || expOther.length > 0) {
+  otherWarn = `<div class="warn">⚠️ יש גם נתונים משנים אחרות: ${donOther.length} תרומות + ${expOther.length} הוצאות (${fmt(sumAmt(donOther) - sumAmt(expOther))} מאזן). <br>נראה שה-cleanup_all לא רץ — הם מורידים את היתרה.</div>`;
+}
+
+document.getElementById('out').innerHTML = `
+<div class="section">
+  <h3>נתוני 2026 לפי חודש</h3>
+  <table>
+    <tr><th>חודש</th><th>הכנסות</th><th>הוצאות</th><th>מאזן</th></tr>
+    ${monthRows}
+    <tr class="total"><td>סה"כ 2026</td><td class="num">${fmt(totalDon26)}</td><td class="num">${fmt(totalExp26)}</td><td class="num">${netStr26}</td></tr>
+  </table>
+</div>
+<div class="section">
+  <h3>יתרת פתיחה שהוזנה</h3>
+  <p>${fmt(openingBal)}</p>
+</div>
+<div class="section">
+  <h3>יתרה מחושבת באפליקציה</h3>
+  <p><strong>${fmt(appBalance)}</strong></p>
+</div>
+<div class="section">
+  <h3>נדרש להגיע ל-10,434 ₪</h3>
+  <p>יתרת פתיחה נכונה: <strong>${fmt(10434 - totalNet26)}</strong></p>
+</div>
+${otherWarn}
+`;
+</script>
+</body></html>
