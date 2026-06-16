@@ -1,10 +1,21 @@
 import React, { useRef, useState } from 'react';
 
-const DONORS_KEY = 'halichot_olam_donors';
+const DONORS_KEY   = 'halichot_olam_donors';
+const OB_KEY       = 'halichot_olam_opening_balance';
 
 export default function Settings() {
   const fileRef = useRef();
   const [msg, setMsg] = useState('');
+  const [ob, setOb]   = useState(() => localStorage.getItem(OB_KEY) || '');
+  const [obMsg, setObMsg] = useState('');
+
+  const saveOb = () => {
+    const val = parseFloat(ob) || 0;
+    localStorage.setItem(OB_KEY, String(val));
+    window.dispatchEvent(new CustomEvent('ls-update', { detail: 'opening_balance' }));
+    setObMsg('נשמר ✓');
+    setTimeout(() => setObMsg(''), 2000);
+  };
 
   const importDonors = (e) => {
     const file = e.target.files[0];
@@ -98,6 +109,27 @@ export default function Settings() {
                 {msg}
               </div>
             )}
+          </div>
+        </div>
+
+        <div className="card" style={{ maxWidth: 600, marginTop: 20 }}>
+          <div className="card-header"><h2>יתרת פתיחה</h2></div>
+          <div className="card-body">
+            <p style={{ color: 'var(--gray-600)', fontSize: '0.88rem', marginBottom: 16, lineHeight: 1.7 }}>
+              הזן את יתרת החשבון <strong>לפני</strong> שהתחלת לייבא תנועות. כך לוח הבקרה יציג יתרה נכונה שמתאימה לבנק.
+            </p>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <input
+                className="form-control"
+                type="number"
+                value={ob}
+                onChange={e => setOb(e.target.value)}
+                placeholder="סכום בש״ח"
+                style={{ maxWidth: 200 }}
+              />
+              <button className="btn btn-primary" onClick={saveOb}>שמור</button>
+              {obMsg && <span style={{ color: 'var(--green)', fontWeight: 700 }}>{obMsg}</span>}
+            </div>
           </div>
         </div>
 

@@ -14,9 +14,10 @@ export default function Dashboard() {
     return d.toISOString().slice(0, 7);
   })();
 
+  const openingBalance = parseFloat(localStorage.getItem('halichot_olam_opening_balance') || '0');
   const totalDonations = useMemo(() => sumField(donations, 'amountILS'), [donations]);
   const totalExpenses  = useMemo(() => sumField(expenses, 'amount'), [expenses]);
-  const balance        = totalDonations - totalExpenses;
+  const balance        = openingBalance + totalDonations - totalExpenses;
 
   const monthDonations = useMemo(() =>
     sumField(donations.filter(d => monthKey(d.date) === thisMonth), 'amountILS'), [donations, thisMonth]);
@@ -58,7 +59,11 @@ export default function Dashboard() {
           <div className="stat-card highlight">
             <div className="label">יתרה כוללת</div>
             <div className={`value ${balance >= 0 ? 'positive' : 'negative'}`}>{formatILS(balance)}</div>
-            <div className="trend">הכנסות פחות הוצאות מסך הכל</div>
+            <div className="trend">
+              {openingBalance !== 0
+                ? `פתיחה ${formatILS(openingBalance)} + הכנסות − הוצאות`
+                : 'הכנסות פחות הוצאות מסך הכל'}
+            </div>
           </div>
           <div className="stat-card">
             <div className="label">תרומות החודש</div>
