@@ -36,59 +36,67 @@ function sendWhatsApp(d, donors) {
   window.open(url, '_blank');
 }
 
-function printReceipt(d) {
+const RECEIPT_STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Heebo', sans-serif; direction: rtl; color: #1a2744; background: #fff; }
+  .receipt { max-width: 480px; margin: 40px auto; border: 2px solid #b8973a; border-radius: 12px; overflow: hidden; }
+  .header { background: #1a2744; color: white; padding: 24px; text-align: center; }
+  .org { font-size: 22px; font-weight: 700; }
+  .org-sub { font-size: 13px; opacity: 0.7; margin-top: 4px; }
+  .receipt-title { background: #b8973a; color: white; text-align: center; padding: 10px; font-size: 18px; font-weight: 700; letter-spacing: 2px; }
+  .body { padding: 28px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  td { padding: 10px 8px; border-bottom: 1px solid #e2e0dc; font-size: 15px; }
+  td:first-child { color: #6b6762; width: 40%; }
+  td:last-child { font-weight: 600; }
+  .amount-row td:last-child { font-size: 22px; color: #2a6b4a; font-weight: 700; }
+  .footer { text-align: center; padding: 16px; font-size: 12px; color: #9e9b95; border-top: 1px solid #e2e0dc; }
+  .thankyou { text-align: center; padding: 20px 28px 0; font-size: 14px; color: #6b6762; line-height: 1.7; }
+  @media print { .receipt { margin: 0 auto; border-radius: 0; page-break-after: always; } .receipt:last-child { page-break-after: avoid; } }
+`;
+
+function receiptHTML(d) {
   const amt = parseFloat(d.amountILS || d.amount || 0).toLocaleString('he-IL');
   const ref = d.reference ? `<tr><td>אסמכתא</td><td>${d.reference}</td></tr>` : '';
-  const win = window.open('', '_blank');
-  win.document.write(`<!DOCTYPE html>
-<html lang="he" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <title>קבלה – תפארת מישאל</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700&display=swap');
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Heebo', sans-serif; direction: rtl; color: #1a2744; background: #fff; padding: 40px; }
-    .receipt { max-width: 480px; margin: auto; border: 2px solid #b8973a; border-radius: 12px; overflow: hidden; }
-    .header { background: #1a2744; color: white; padding: 24px; text-align: center; }
-    .org { font-size: 22px; font-weight: 700; }
-    .org-sub { font-size: 13px; opacity: 0.7; margin-top: 4px; }
-    .receipt-title { background: #b8973a; color: white; text-align: center; padding: 10px; font-size: 18px; font-weight: 700; letter-spacing: 2px; }
-    .body { padding: 28px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    td { padding: 10px 8px; border-bottom: 1px solid #e2e0dc; font-size: 15px; }
-    td:first-child { color: #6b6762; width: 40%; }
-    td:last-child { font-weight: 600; }
-    .amount-row td:last-child { font-size: 22px; color: #2a6b4a; font-weight: 700; }
-    .footer { text-align: center; padding: 16px; font-size: 12px; color: #9e9b95; border-top: 1px solid #e2e0dc; }
-    .thankyou { text-align: center; padding: 20px 28px 0; font-size: 14px; color: #6b6762; line-height: 1.7; }
-    @media print { body { padding: 0; } }
-  </style>
-</head>
-<body>
+  const bankRef = d.bankRef && !d.reference ? `<tr><td>אסמכתא</td><td>${d.bankRef}</td></tr>` : '';
+  const numBadge = d.receiptNumber
+    ? `<div style="text-align:center;padding:6px;background:#f8f5ef;font-size:13px;color:#6b6762;">מספר קבלה: <strong style="color:#1a2744;font-size:15px;">${formatReceiptNum(d.receiptNumber)}</strong></div>`
+    : '';
+  return `
   <div class="receipt">
     <div class="header">
       <div class="org">תפארת מישאל</div>
       <div class="org-sub">הליכות עולם · צונץ 11, תל אביב</div>
     </div>
     <div class="receipt-title">קבלה על תרומה</div>
-    ${d.receiptNumber ? `<div style="text-align:center;padding:6px;background:#f8f5ef;font-size:13px;color:#6b6762;">מספר קבלה: <strong style="color:#1a2744;font-size:15px;">${formatReceiptNum(d.receiptNumber)}</strong></div>` : ''}
+    ${numBadge}
     <div class="body">
       <table>
         <tr><td>שם התורם</td><td>${d.donorName}</td></tr>
         <tr class="amount-row"><td>סכום התרומה</td><td>₪${amt}</td></tr>
         <tr><td>תאריך</td><td>${d.date}</td></tr>
         <tr><td>אמצעי תשלום</td><td>${d.paymentMethod || '—'}</td></tr>
-        ${ref}
+        ${ref}${bankRef}
         ${d.notes ? `<tr><td>הערות</td><td>${d.notes}</td></tr>` : ''}
       </table>
     </div>
     <div class="thankyou">יהי רצון שתזכו לראות פרי ברכה מתרומתכם הנדיבה.</div>
     <div class="footer">הופק: ${new Date().toLocaleDateString('he-IL')} · תפארת מישאל – הליכות עולם</div>
-  </div>
-  <script>window.onload = () => window.print();</script>
-</body>
-</html>`);
+  </div>`;
+}
+
+function printReceipt(d) {
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8"><title>קבלה – תפארת מישאל</title><style>${RECEIPT_STYLES}</style></head><body>${receiptHTML(d)}<script>window.onload = () => window.print();<\/script></body></html>`);
+  win.document.close();
+}
+
+function printAllReceipts(donations) {
+  if (!donations.length) return alert('אין תרומות להדפסה');
+  const win = window.open('', '_blank');
+  const sorted = [...donations].sort((a, b) => a.date > b.date ? 1 : -1);
+  win.document.write(`<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8"><title>כל הקבלות – תפארת מישאל</title><style>${RECEIPT_STYLES}</style></head><body>${sorted.map(receiptHTML).join('')}<script>window.onload = () => window.print();<\/script></body></html>`);
   win.document.close();
 }
 
@@ -269,10 +277,18 @@ export default function Donations() {
             {months.map(m => <option key={m} value={m}>{heMonthYear(m)}</option>)}
           </select>
           {filterMonth && (
-            <div style={{ marginRight: 'auto', fontWeight: 600, color: 'var(--green)' }}>
+            <div style={{ fontWeight: 600, color: 'var(--green)' }}>
               סה"כ: {formatILS(totalFiltered)}
             </div>
           )}
+          <button
+            className="btn btn-outline btn-sm"
+            style={{ marginRight: 'auto' }}
+            onClick={() => printAllReceipts(filtered)}
+            title={`הדפס ${filtered.length} קבלות`}
+          >
+            🖨️ הדפס הכל ({filtered.length})
+          </button>
         </div>
 
         <div className="card">
