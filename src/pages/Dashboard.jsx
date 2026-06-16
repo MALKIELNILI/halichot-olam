@@ -111,7 +111,7 @@ export default function Dashboard() {
         </div>
 
         {/* Recent activity */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
           <div className="card">
             <div className="card-header"><h2>תרומות אחרונות</h2></div>
             <div className="table-wrapper">
