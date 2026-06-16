@@ -28,6 +28,7 @@ import Scholars from './pages/Scholars';
 import Donors from './pages/Donors';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import BankImport from './pages/BankImport';
 
 const NAV = [
   { section: 'ראשי' },
@@ -41,6 +42,7 @@ const NAV = [
   { section: 'דוחות' },
   { to: '/reports', icon: '📋', label: 'דוחות' },
   { section: 'מערכת' },
+  { to: '/import', icon: '🏦', label: 'ייבוא מבנק' },
   { to: '/settings', icon: '⚙️', label: 'הגדרות' },
 ];
 
@@ -102,6 +104,7 @@ function App() {
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/scholars" element={<Scholars />} />
             <Route path="/reports" element={<Reports />} />
+            <Route path="/import" element={<BankImport />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </main>
