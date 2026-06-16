@@ -31,7 +31,12 @@ export function useCollection(collName, order = 'createdAt') {
   useEffect(() => {
     const handler = (e) => { if (e.detail === collName) refresh(); };
     window.addEventListener('ls-update', handler);
-    return () => window.removeEventListener('ls-update', handler);
+    const storageHandler = (e) => { if (e.key === KEY(collName)) refresh(); };
+    window.addEventListener('storage', storageHandler);
+    return () => {
+      window.removeEventListener('ls-update', handler);
+      window.removeEventListener('storage', storageHandler);
+    };
   }, [collName, refresh]);
 
   const add = useCallback((item) => {
