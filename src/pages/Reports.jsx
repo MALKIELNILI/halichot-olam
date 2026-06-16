@@ -68,6 +68,41 @@ export default function Reports() {
     return Object.values(map).sort((a, b) => b.total - a.total);
   }, [expenses, year]);
 
+  // ── WhatsApp report ──
+  const sendWhatsAppReport = () => {
+    const filtDon = donations.filter(d => (!month || monthKey(d.date) === month) && (!year || d.date?.startsWith(year)));
+    const filtExp = expenses.filter(e => (!month || monthKey(e.date) === month) && (!year || e.date?.startsWith(year)));
+    const totalDon = sumField(filtDon, 'amountILS');
+    const totalExp = sumField(filtExp, 'amount');
+    const net = totalDon - totalExp;
+    const periodLabel = month ? heMonthYear(month) : `שנת ${year}`;
+
+    const fmt = (n) => parseFloat(n || 0).toLocaleString('he-IL');
+
+    let text = `📊 דוח כספי – תפארת מישאל\nתקופה: ${periodLabel}\n`;
+    text += `─────────────────\n`;
+
+    text += `\n📥 הכנסות (${filtDon.length}):\n`;
+    [...filtDon].sort((a,b) => (a.date||'').localeCompare(b.date||'')).forEach(d => {
+      const ref = d.bankRef || d.reference;
+      text += `• ${d.date} | ${d.donorName}${ref ? ' | ' + ref : ''} | +${fmt(d.amountILS)} ₪\n`;
+    });
+    text += `סך הכנסות: *${fmt(totalDon)} ₪*\n`;
+
+    text += `\n📤 הוצאות (${filtExp.length}):\n`;
+    [...filtExp].sort((a,b) => (a.date||'').localeCompare(b.date||'')).forEach(e => {
+      const ref = e.bankRef || e.reference;
+      text += `• ${e.date} | ${e.description}${ref ? ' | ' + ref : ''} | -${fmt(e.amount)} ₪\n`;
+    });
+    text += `סך הוצאות: *${fmt(totalExp)} ₪*\n`;
+
+    text += `\n─────────────────\n`;
+    text += `מאזן: *${net >= 0 ? '+' : ''}${fmt(net)} ₪*\n`;
+    text += `הופק: ${new Date().toLocaleDateString('he-IL')}`;
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
   // ── Accountant report ──
   const printAccountantReport = () => {
     const filtDon = donations.filter(d => !month || monthKey(d.date) === month);
@@ -190,6 +225,7 @@ export default function Reports() {
             <option value="">כל השנה</option>
             {months.map(m => <option key={m} value={m}>{heMonthYear(m)}</option>)}
           </select>
+          <button className="btn btn-outline" onClick={sendWhatsAppReport}>📱 שלח וואטסאפ לרו"ח</button>
           <button className="btn btn-gold" onClick={printAccountantReport}>🖨️ הדפס לרו"ח</button>
         </div>
       </div>
