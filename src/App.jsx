@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 
-const DONORS_KEY = 'halichot_olam_donors';
-const SEEDED_KEY = 'halichot_olam_seeded';
+const SEEDED_KEY = 'halichot_olam_seeded_v2';
 
-async function seedDonors() {
-  if (localStorage.getItem(SEEDED_KEY)) return;
-  const existing = JSON.parse(localStorage.getItem(DONORS_KEY) || '[]');
-  if (existing.length > 0) { localStorage.setItem(SEEDED_KEY, '1'); return; }
+async function seedCollection(name, file) {
+  const key = `halichot_olam_${name}`;
+  const existing = JSON.parse(localStorage.getItem(key) || '[]');
+  if (existing.length > 0) return;
   try {
-    const res = await fetch(import.meta.env.BASE_URL + 'donors_import.json');
-    const donors = await res.json();
-    localStorage.setItem(DONORS_KEY, JSON.stringify(donors));
-    localStorage.setItem(SEEDED_KEY, '1');
-    window.dispatchEvent(new CustomEvent('ls-update', { detail: 'donors' }));
+    const res = await fetch(import.meta.env.BASE_URL + file);
+    const data = await res.json();
+    localStorage.setItem(key, JSON.stringify(data));
+    window.dispatchEvent(new CustomEvent('ls-update', { detail: name }));
   } catch {}
+}
+
+async function seedAll() {
+  if (localStorage.getItem(SEEDED_KEY)) return;
+  await seedCollection('donors', 'donors_import.json');
+  await seedCollection('scholars', 'scholars_import.json');
+  localStorage.setItem(SEEDED_KEY, '1');
 }
 import Dashboard from './pages/Dashboard';
 import Donations from './pages/Donations';
@@ -78,7 +83,7 @@ function Sidebar({ mobileOpen, onClose }) {
 function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  useEffect(() => { seedDonors(); }, []);
+  useEffect(() => { seedAll(); }, []);
 
   return (
     <BrowserRouter basename="/halichot-olam">
