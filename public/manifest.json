@@ -1,0 +1,19 @@
+{
+  "name": "תפארת מישאל – הליכות עולם",
+  "short_name": "תפארת מישאל",
+  "description": "מערכת ניהול עמותה – הליכות עולם",
+  "start_url": "/halichot-olam/",
+  "display": "standalone",
+  "background_color": "#0f1e3d",
+  "theme_color": "#1a2744",
+  "dir": "rtl",
+  "lang": "he",
+  "icons": [
+    {
+      "src": "/halichot-olam/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

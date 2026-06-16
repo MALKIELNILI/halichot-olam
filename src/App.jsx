@@ -1,0 +1,79 @@
+import React, { useState } from 'react';
+import { BrowserRouter, Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import Dashboard from './pages/Dashboard';
+import Donations from './pages/Donations';
+import Expenses from './pages/Expenses';
+import Scholars from './pages/Scholars';
+import Donors from './pages/Donors';
+import Reports from './pages/Reports';
+import Settings from './pages/Settings';
+
+const NAV = [
+  { section: 'ראשי' },
+  { to: '/', icon: '📊', label: 'לוח בקרה' },
+  { section: 'הכנסות' },
+  { to: '/donations', icon: '💰', label: 'תרומות' },
+  { to: '/donors', icon: '👥', label: 'תורמים' },
+  { section: 'הוצאות' },
+  { to: '/expenses', icon: '📤', label: 'הוצאות' },
+  { to: '/scholars', icon: '📚', label: 'אברכים' },
+  { section: 'דוחות' },
+  { to: '/reports', icon: '📋', label: 'דוחות' },
+  { section: 'מערכת' },
+  { to: '/settings', icon: '⚙️', label: 'הגדרות' },
+];
+
+function Sidebar() {
+  return (
+    <aside className="sidebar">
+      <div className="sidebar-logo">
+        <div className="org-name">תפארת מישאל</div>
+        <div className="org-sub">הליכות עולם</div>
+        <div className="org-addr">צונץ 11, תל אביב</div>
+      </div>
+      <nav className="sidebar-nav">
+        {NAV.map((item, i) =>
+          item.section ? (
+            <div key={i} className="nav-section-label">{item.section}</div>
+          ) : (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === '/'}
+              className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}
+            >
+              <span className="icon">{item.icon}</span>
+              {item.label}
+            </NavLink>
+          )
+        )}
+      </nav>
+      <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>
+        גרסה 1.0 · {new Date().getFullYear()}
+      </div>
+    </aside>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter basename="/halichot-olam">
+      <div className="app-shell">
+        <Sidebar />
+        <main className="main-content">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/donations" element={<Donations />} />
+            <Route path="/donors" element={<Donors />} />
+            <Route path="/expenses" element={<Expenses />} />
+            <Route path="/scholars" element={<Scholars />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+        </main>
+      </div>
+    </BrowserRouter>
+  );
+}
+
+export default App;
