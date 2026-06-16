@@ -11,13 +11,21 @@ const EMPTY = {
 const PAYMENT_METHODS = ['העברה בנקאית', 'מזומן', 'צ׳ק', 'כרטיס אשראי', 'PayPal', 'Zelle', 'Wire Transfer', 'אחר'];
 
 const DEFAULT_KEY = 'halichot_receipt_default';
-const getDefault = () => localStorage.getItem(DEFAULT_KEY) || 'whatsapp';
-const setDefault = (v) => localStorage.setItem(DEFAULT_KEY, v);
+const SEQ_KEY     = 'halichot_receipt_seq';
+const getDefault  = () => localStorage.getItem(DEFAULT_KEY) || 'whatsapp';
+const setDefault  = (v) => localStorage.setItem(DEFAULT_KEY, v);
+const nextReceiptNum = () => {
+  const n = parseInt(localStorage.getItem(SEQ_KEY) || '0') + 1;
+  localStorage.setItem(SEQ_KEY, String(n));
+  return n;
+};
+const formatReceiptNum = (n) => n ? String(n).padStart(4, '0') : '';
 
 function receiptText(d) {
   const amt = parseFloat(d.amountILS || d.amount || 0).toLocaleString('he-IL');
   const ref = d.reference ? `\nאסמכתא: ${d.reference}` : '';
-  return `שלום ${d.donorName},\n\nתודה רבה על תרומתך הנדיבה לעמותת *תפארת מישאל – הליכות עולם*.\n\n💰 סכום: ₪${amt}\n📅 תאריך: ${d.date}${ref}\n💳 אמצעי תשלום: ${d.paymentMethod || ''}\n\nיהי רצון שתזכה לראות פרי ברכה מתרומתך.\n\nבברכה,\nתפארת מישאל – הליכות עולם`;
+  const num = d.receiptNumber ? `\nמספר קבלה: ${formatReceiptNum(d.receiptNumber)}` : '';
+  return `שלום ${d.donorName},\n\nתודה רבה על תרומתך הנדיבה לעמותת *תפארת מישאל – הליכות עולם*.\n\n💰 סכום: ₪${amt}\n📅 תאריך: ${d.date}${ref}${num}\n💳 אמצעי תשלום: ${d.paymentMethod || ''}\n\nיהי רצון שתזכה לראות פרי ברכה מתרומתך.\n\nבברכה,\nתפארת מישאל – הליכות עולם`;
 }
 
 function sendWhatsApp(d, donors) {
@@ -64,6 +72,7 @@ function printReceipt(d) {
       <div class="org-sub">הליכות עולם · צונץ 11, תל אביב</div>
     </div>
     <div class="receipt-title">קבלה על תרומה</div>
+    ${d.receiptNumber ? `<div style="text-align:center;padding:6px;background:#f8f5ef;font-size:13px;color:#6b6762;">מספר קבלה: <strong style="color:#1a2744;font-size:15px;">${formatReceiptNum(d.receiptNumber)}</strong></div>` : ''}
     <div class="body">
       <table>
         <tr><td>שם התורם</td><td>${d.donorName}</td></tr>
@@ -110,6 +119,7 @@ function ReceiptModal({ donation, donors, onClose }) {
             <div style={{ color: 'var(--green)', fontWeight: 600, fontSize: '1.1rem' }}>{formatILS(donation.amountILS || donation.amount)}</div>
             <div style={{ color: 'var(--gray-600)', fontSize: '0.85rem', marginTop: 4 }}>{donation.date} · {donation.paymentMethod}</div>
             {donation.reference && <div style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>אסמכתא: {donation.reference}</div>}
+            {donation.receiptNumber && <div style={{ color: 'var(--navy)', fontWeight: 700, fontSize: '0.9rem', marginTop: 4 }}>מספר קבלה: {formatReceiptNum(donation.receiptNumber)}</div>}
           </div>
 
           {/* Primary button */}
@@ -212,7 +222,7 @@ export default function Donations() {
     if (!form.amount) return alert('יש להזין סכום');
     if (!form.date) return alert('יש להזין תאריך');
     const amountILS = form.currency === '₪' ? form.amount : (form.amountILS || form.amount);
-    const saved = { ...form, amountILS };
+    const saved = { ...form, amountILS, ...(!editId && { receiptNumber: nextReceiptNum() }) };
     if (editId) {
       await update(editId, saved);
       close();
@@ -269,6 +279,7 @@ export default function Donations() {
             <table>
               <thead>
                 <tr>
+                  <th>קבלה</th>
                   <th>תאריך</th>
                   <th>שם תורם</th>
                   <th>סכום מקורי</th>
@@ -288,6 +299,7 @@ export default function Donations() {
                 )}
                 {filtered.map(d => (
                   <tr key={d.id}>
+                    <td style={{ fontWeight: 700, color: 'var(--navy)', whiteSpace: 'nowrap' }}>{d.receiptNumber ? formatReceiptNum(d.receiptNumber) : '—'}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{d.date}</td>
                     <td style={{ fontWeight: 600 }}>{d.donorName}</td>
                     <td className="amount-positive">{d.amount} {d.currency}</td>
@@ -308,7 +320,7 @@ export default function Donations() {
               {filtered.length > 0 && (
                 <tfoot>
                   <tr style={{ background: 'var(--gray-50)' }}>
-                    <td colSpan={3} style={{ fontWeight: 700, padding: '12px 16px' }}>סה"כ</td>
+                    <td colSpan={4} style={{ fontWeight: 700, padding: '12px 16px' }}>סה"כ</td>
                     <td className="amount-positive" style={{ fontWeight: 700 }}>{formatILS(totalFiltered)}</td>
                     <td colSpan={4}></td>
                   </tr>
