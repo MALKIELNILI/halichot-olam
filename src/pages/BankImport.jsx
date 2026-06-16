@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { useDonations, useExpenses, useDonors, useScholars } from '../hooks/useFirestore';
 import { todayISO } from '../utils/helpers';
@@ -43,13 +43,18 @@ function fuzzyMatch(bankName, candidates) {
   return null;
 }
 
-// קטגוריה אוטומטית להוצאה
 function autoCategory(desc) {
   if (/עמלת|עמלה|חליפין|מסלול|ריבית/.test(desc)) return 'עמלות ובנק';
   if (/ביטוח/.test(desc)) return 'ביטוח לאומי';
   if (/חשמל/.test(desc)) return 'חברת החשמל';
   if (/מים/.test(desc)) return 'תאגיד מים';
   return 'מלגות אברכים';
+}
+
+// חילוץ אסמכתה מהערות שמורות
+function extractRef(notes) {
+  const m = String(notes || '').match(/אסמכתה:\s*([^\s|]+)/);
+  return m ? m[1].trim() : '';
 }
 
 export default function BankImport() {
@@ -60,13 +65,23 @@ export default function BankImport() {
   const [msg, setMsg] = useState('');
   const [importing, setImporting] = useState(false);
 
-  const { data: donors,  add: addDonor  } = useDonors();
-  const { data: scholars }                 = useScholars();
-  const { add: addDonation }               = useDonations();
-  const { add: addExpense  }               = useExpenses();
+  const { data: donors,    add: addDonor    } = useDonors();
+  const { data: scholars                     } = useScholars();
+  const { data: donations, add: addDonation  } = useDonations();
+  const { data: expenses,  add: addExpense   } = useExpenses();
 
   const donorNames   = donors.map(d => d.name);
   const scholarNames = scholars.map(s => s.name);
+
+  // אסמכתאות שכבר מיובאות
+  const importedRefs = useMemo(() => {
+    const refs = new Set();
+    [...donations, ...expenses].forEach(r => {
+      const ref = r.bankRef || extractRef(r.notes);
+      if (ref) refs.add(ref);
+    });
+    return refs;
+  }, [donations, expenses]);
 
   const parseFile = (e) => {
     const file = e.target.files[0];
@@ -87,25 +102,24 @@ export default function BankImport() {
           const row = rows[i];
           const desc   = String(row[2] || '').trim();
           const amount = parseFloat(row[3] || 0);
-          // רק שורות ריקות לחלוטין מדולגות
           if (!desc && !amount) continue;
           dataRows++;
 
-          const isIncome = amount > 0;
-          const name     = extractName(desc, isIncome);
-          const matched  = isIncome
-            ? fuzzyMatch(name, donorNames)
-            : fuzzyMatch(name, scholarNames);
-          const ref      = String(row[5] || '').trim();
-          const category = isIncome ? '' : autoCategory(desc);
+          const isIncome  = amount > 0;
+          const name      = extractName(desc, isIncome);
+          const matched   = isIncome ? fuzzyMatch(name, donorNames) : fuzzyMatch(name, scholarNames);
+          const ref       = String(row[5] || '').trim();
+          const category  = isIncome ? '' : autoCategory(desc);
+          const alreadyIn = ref ? importedRefs.has(ref) : false;
 
-          result.push({ id: i, date: parseDate(row[0]), desc, amount: Math.abs(amount), isIncome, name, matched, ref, category });
+          result.push({ id: i, date: parseDate(row[0]), desc, amount: Math.abs(amount), isIncome, name, matched, ref, category, alreadyIn });
         }
 
         setTotalRows(dataRows);
         setTxs(result);
+        // כבר מיובא = לא נבחר אוטומטית
         const sel = {};
-        result.forEach(t => { sel[t.id] = true; });
+        result.forEach(t => { sel[t.id] = !t.alreadyIn; });
         setSelected(sel);
       } catch {
         setMsg('שגיאה בקריאת הקובץ. ודא שזה Excel מלאומי.');
@@ -117,16 +131,15 @@ export default function BankImport() {
 
   const toggle    = (id) => setSelected(s => ({ ...s, [id]: !s[id] }));
   const toggleAll = (isIncome) => {
-    const group = txs.filter(t => t.isIncome === isIncome);
+    const group = txs.filter(t => t.isIncome === isIncome && !t.alreadyIn);
     const anyOn = group.some(t => selected[t.id]);
     setSelected(s => { const n = {...s}; group.forEach(t => { n[t.id] = !anyOn; }); return n; });
   };
 
   const doImport = async () => {
     setImporting(true);
-    const list = txs.filter(t => selected[t.id]);
+    const list = txs.filter(t => selected[t.id] && !t.alreadyIn);
 
-    // הוסף תורמים חדשים תחילה
     const seen = new Set(donorNames);
     for (const t of list.filter(t => t.isIncome && !t.matched)) {
       if (!seen.has(t.name)) {
@@ -139,10 +152,10 @@ export default function BankImport() {
     for (const t of list) {
       const noteStr = `אסמכתה: ${t.ref}${t.ref ? ' | ' : ''}${t.desc}`;
       if (t.isIncome) {
-        await addDonation({ donorName: t.matched || t.name, amountILS: t.amount, currency: '₪', date: t.date, notes: noteStr });
+        await addDonation({ donorName: t.matched || t.name, amountILS: t.amount, currency: '₪', date: t.date, bankRef: t.ref, notes: noteStr });
         donated++;
       } else {
-        await addExpense({ description: t.matched || t.name, amount: t.amount, category: t.category, date: t.date, payee: t.matched || t.name, notes: noteStr });
+        await addExpense({ description: t.matched || t.name, amount: t.amount, category: t.category, date: t.date, payee: t.matched || t.name, bankRef: t.ref, notes: noteStr });
         expensed++;
       }
     }
@@ -156,25 +169,45 @@ export default function BankImport() {
   const income   = txs?.filter(t => t.isIncome)  || [];
   const expenses = txs?.filter(t => !t.isIncome) || [];
   const selCount = Object.values(selected).filter(Boolean).length;
-  const newDonors = income.filter(t => !t.matched);
+  const alreadyCount = txs?.filter(t => t.alreadyIn).length || 0;
+  const newDonors = income.filter(t => !t.matched && !t.alreadyIn);
 
   const TxSection = ({ rows, isIncome }) => {
-    const known   = rows.filter(t => t.matched);
-    const unknown = rows.filter(t => !t.matched);
+    const known   = rows.filter(t =>  t.matched && !t.alreadyIn);
+    const unknown = rows.filter(t => !t.matched && !t.alreadyIn);
+    const already = rows.filter(t =>  t.alreadyIn);
 
-    const Row = ({ t }) => (
-      <tr style={{ opacity: selected[t.id] ? 1 : 0.3 }}>
-        <td style={{ width: 32 }}><input type="checkbox" checked={!!selected[t.id]} onChange={() => toggle(t.id)} /></td>
-        <td style={{ fontSize: '0.8rem', whiteSpace: 'nowrap', color: 'var(--gray-600)' }}>{t.date}</td>
-        <td style={{ fontWeight: 600, fontSize: '0.87rem' }}>
-          {t.matched
-            ? <>{t.matched} <span style={{ color: 'var(--green)', fontSize: '0.7rem' }}>✓</span></>
-            : <span>{t.name}</span>}
-        </td>
-        {!isIncome && <td style={{ fontSize: '0.78rem', color: 'var(--gray-500)' }}>{t.category}</td>}
-        <td style={{ fontSize: '0.78rem', color: 'var(--gray-400)', whiteSpace: 'nowrap' }}>{t.ref}</td>
-        <td className={isIncome ? 'amount-positive' : 'amount-negative'} style={{ whiteSpace: 'nowrap' }}>
-          ₪{t.amount.toLocaleString()}
+    const Row = ({ t }) => {
+      const rowStyle = t.alreadyIn
+        ? { background: '#e8f5ee', opacity: 0.7 }
+        : { opacity: selected[t.id] ? 1 : 0.3 };
+
+      return (
+        <tr style={rowStyle}>
+          <td style={{ width: 32 }}>
+            {t.alreadyIn
+              ? <span title="כבר מיובא" style={{ color: 'var(--green)', fontSize: '1rem' }}>✓</span>
+              : <input type="checkbox" checked={!!selected[t.id]} onChange={() => toggle(t.id)} />}
+          </td>
+          <td style={{ fontSize: '0.8rem', whiteSpace: 'nowrap', color: 'var(--gray-600)' }}>{t.date}</td>
+          <td style={{ fontWeight: 600, fontSize: '0.87rem' }}>
+            {t.matched
+              ? <>{t.matched} <span style={{ color: 'var(--green)', fontSize: '0.7rem' }}>✓</span></>
+              : t.name}
+          </td>
+          {!isIncome && <td style={{ fontSize: '0.78rem', color: 'var(--gray-500)' }}>{t.category}</td>}
+          <td style={{ fontSize: '0.78rem', color: 'var(--gray-400)', whiteSpace: 'nowrap' }}>{t.ref}</td>
+          <td className={isIncome ? 'amount-positive' : 'amount-negative'} style={{ whiteSpace: 'nowrap' }}>
+            ₪{t.amount.toLocaleString()}
+          </td>
+        </tr>
+      );
+    };
+
+    const SectionHeader = ({ label, count, color, bg }) => (
+      <tr>
+        <td colSpan={isIncome ? 5 : 6} style={{ background: bg, padding: '5px 14px', fontSize: '0.73rem', fontWeight: 700, color }}>
+          {label} ({count})
         </td>
       </tr>
     );
@@ -184,7 +217,7 @@ export default function BankImport() {
         <div className="card-header">
           <h2>{isIncome ? '📥 הכנסות' : '📤 הוצאות'} ({rows.length})</h2>
           <button className="btn btn-outline btn-sm" onClick={() => toggleAll(isIncome)}>
-            {rows.some(t => selected[t.id]) ? 'בטל הכל' : 'בחר הכל'}
+            {rows.filter(t => !t.alreadyIn).some(t => selected[t.id]) ? 'בטל חדשים' : 'בחר חדשים'}
           </button>
         </div>
         <div className="table-wrapper">
@@ -203,20 +236,19 @@ export default function BankImport() {
               {rows.length === 0 && (
                 <tr><td colSpan={isIncome ? 5 : 6} className="empty-state"><p>אין תנועות</p></td></tr>
               )}
+
+              {already.length > 0 && <>
+                <SectionHeader label="✓ כבר מיובא" count={already.length} color="var(--green)" bg="#e8f5ee" />
+                {already.map(t => <Row key={t.id} t={t} />)}
+              </>}
+
               {known.length > 0 && <>
-                <tr>
-                  <td colSpan={isIncome ? 5 : 6} style={{ background: 'var(--green-light)', padding: '5px 14px', fontSize: '0.73rem', fontWeight: 700, color: 'var(--green)' }}>
-                    ✓ מוכרים ({known.length})
-                  </td>
-                </tr>
+                <SectionHeader label="חדש — שם מוכר" count={known.length} color="var(--navy)" bg="var(--gray-50)" />
                 {known.map(t => <Row key={t.id} t={t} />)}
               </>}
+
               {unknown.length > 0 && <>
-                <tr>
-                  <td colSpan={isIncome ? 5 : 6} style={{ background: '#fff8e1', padding: '5px 14px', fontSize: '0.73rem', fontWeight: 700, color: '#8a6a1a' }}>
-                    ⚠ לא מוכרים ({unknown.length}) {isIncome ? '— יתווספו לתורמים' : ''}
-                  </td>
-                </tr>
+                <SectionHeader label="⚠ חדש — לא מוכר" count={unknown.length} color="#8a6a1a" bg="#fff8e1" />
                 {unknown.map(t => <Row key={t.id} t={t} />)}
               </>}
             </tbody>
@@ -231,7 +263,7 @@ export default function BankImport() {
       <div className="page-header">
         <div>
           <h1>ייבוא מבנק</h1>
-          <div className="subtitle">קובץ אחד מלאומי — הכנסות + הוצאות + עמלות</div>
+          <div className="subtitle">קובץ אחד מלאומי — הכל מוצג, כלום לא נדלג</div>
         </div>
         {txs && (
           <button className="btn btn-primary" onClick={doImport} disabled={selCount === 0 || importing}>
@@ -255,7 +287,8 @@ export default function BankImport() {
             <div className="card-body">
               <p style={{ color: 'var(--gray-600)', fontSize: '0.9rem', lineHeight: 1.8, marginBottom: 20 }}>
                 בלאומי: <strong>חשבון עובר ושב ← תנועות ← ייצוא Excel</strong><br/>
-                <strong>כל השורות</strong> יוצגו — כולל עמלות. בחר מה לייבא.
+                כל השורות מוצגות כולל עמלות.<br/>
+                שורות שכבר יובאו מסומנות <span style={{ color: 'var(--green)', fontWeight: 700 }}>✓ ירוק</span> ולא נבחרות אוטומטית.
               </p>
               <input type="file" accept=".xlsx,.xls" ref={fileRef} style={{ display: 'none' }} onChange={parseFile} />
               <button className="btn btn-primary" onClick={() => fileRef.current.click()}>בחר קובץ Excel מהבנק</button>
@@ -265,14 +298,13 @@ export default function BankImport() {
 
         {txs && (
           <>
-            {/* פס סטטוס — לוודא שכל השורות נקראו */}
             <div style={{ marginBottom: 16, padding: '10px 16px', background: 'var(--blue-light)', borderRadius: 8,
-              display: 'flex', gap: 24, fontSize: '0.88rem', color: 'var(--navy)', flexWrap: 'wrap' }}>
+              display: 'flex', gap: 20, fontSize: '0.88rem', color: 'var(--navy)', flexWrap: 'wrap', alignItems: 'center' }}>
               <span>📄 <strong>סה"כ שורות בקובץ: {totalRows}</strong></span>
               <span>📥 הכנסות: {income.length}</span>
               <span>📤 הוצאות: {expenses.length}</span>
-              <span>☑ נבחרו: {selCount}</span>
-              {newDonors.length > 0 && <span style={{ color: '#8a6a1a' }}>⚠ תורמים חדשים: {newDonors.length}</span>}
+              {alreadyCount > 0 && <span style={{ color: 'var(--green)', fontWeight: 700 }}>✓ כבר מיובא: {alreadyCount}</span>}
+              <span style={{ fontWeight: 700 }}>☑ יובאו: {selCount}</span>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 20 }}>
@@ -280,7 +312,7 @@ export default function BankImport() {
               <TxSection rows={expenses} isIncome={false} />
             </div>
 
-            <div style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <button className="btn btn-primary" onClick={doImport} disabled={selCount === 0 || importing}>
                 {importing ? 'מייבא...' : `ייבא ${selCount} תנועות נבחרות`}
               </button>
