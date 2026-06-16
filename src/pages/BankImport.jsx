@@ -5,10 +5,16 @@ import { todayISO } from '../utils/helpers';
 
 function parseDate(raw) {
   if (!raw) return todayISO();
+  // מספר סידורי של Excel — ללא תלות באזור זמן
+  if (typeof raw === 'number') {
+    const p = XLSX.SSF.parse_date_code(raw);
+    return `${p.y}-${String(p.m).padStart(2,'0')}-${String(p.d).padStart(2,'0')}`;
+  }
   if (raw instanceof Date) {
-    const y = raw.getFullYear();
-    const m = String(raw.getMonth() + 1).padStart(2, '0');
-    const d = String(raw.getDate()).padStart(2, '0');
+    // UTC getters — מניעת shift של אזור זמן
+    const y = raw.getUTCFullYear();
+    const m = String(raw.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(raw.getUTCDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
   }
   return String(raw).slice(0, 10).replace(/T.*/, '');
@@ -102,7 +108,7 @@ export default function BankImport() {
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const wb = XLSX.read(ev.target.result, { type: 'array', cellDates: true });
+        const wb = XLSX.read(ev.target.result, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
