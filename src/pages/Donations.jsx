@@ -184,7 +184,9 @@ export default function Donations() {
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
   const [search, setSearch] = useState('');
+  const [filterYear, setFilterYear] = useState('');
   const [filterMonth, setFilterMonth] = useState('');
+  const [sortBy, setSortBy] = useState('date-desc');
   const [acOpen, setAcOpen] = useState(false);
   const [acQuery, setAcQuery] = useState('');
   const [receiptDonation, setReceiptDonation] = useState(null);
@@ -244,11 +246,27 @@ export default function Donations() {
 
   const del = async (id) => { if (window.confirm('למחוק תרומה זו?')) await remove(id); };
 
-  const months = [...new Set(donations.map(d => monthKey(d.date)).filter(Boolean))].sort().reverse();
+  const years = [...new Set(donations.map(d => (d.date || '').slice(0, 4)).filter(Boolean))].sort().reverse();
+  const allMonths = [...new Set(donations.map(d => monthKey(d.date)).filter(Boolean))].sort().reverse();
+  const months = filterYear ? allMonths.filter(m => m.startsWith(filterYear)) : allMonths;
+
+  const onYearChange = (y) => { setFilterYear(y); setFilterMonth(''); };
+
   const filtered = donations.filter(d => {
     const matchSearch = !search || d.donorName?.includes(search);
+    const matchYear   = !filterYear  || (d.date || '').startsWith(filterYear);
     const matchMonth  = !filterMonth || monthKey(d.date) === filterMonth;
-    return matchSearch && matchMonth;
+    return matchSearch && matchYear && matchMonth;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortBy === 'date-desc') return (b.date || '') > (a.date || '') ? 1 : -1;
+    if (sortBy === 'date-asc')  return (a.date || '') > (b.date || '') ? 1 : -1;
+    if (sortBy === 'name-asc')  return (a.donorName || '').localeCompare(b.donorName || '', 'he');
+    if (sortBy === 'name-desc') return (b.donorName || '').localeCompare(a.donorName || '', 'he');
+    if (sortBy === 'amount-desc') return parseFloat(b.amountILS || 0) - parseFloat(a.amountILS || 0);
+    if (sortBy === 'amount-asc')  return parseFloat(a.amountILS || 0) - parseFloat(b.amountILS || 0);
+    return 0;
   });
 
   const totalFiltered = filtered.reduce((s, d) => s + parseFloat(d.amountILS || 0), 0);
@@ -264,30 +282,42 @@ export default function Donations() {
       </div>
 
       <div className="page-body">
-        <div className="filter-bar">
+        <div className="filter-bar" style={{ flexWrap: 'wrap', gap: 8 }}>
           <input
             className="form-control"
             placeholder="חיפוש לפי שם..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{ maxWidth: 220 }}
+            style={{ maxWidth: 200 }}
           />
-          <select className="form-control" value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ maxWidth: 180 }}>
+          <select className="form-control" value={filterYear} onChange={e => onYearChange(e.target.value)} style={{ maxWidth: 110 }}>
+            <option value="">כל השנים</option>
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <select className="form-control" value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ maxWidth: 150 }}>
             <option value="">כל החודשים</option>
             {months.map(m => <option key={m} value={m}>{heMonthYear(m)}</option>)}
           </select>
-          {filterMonth && (
-            <div style={{ fontWeight: 600, color: 'var(--green)' }}>
+          <select className="form-control" value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ maxWidth: 170 }}>
+            <option value="date-desc">תאריך — חדש לישן</option>
+            <option value="date-asc">תאריך — ישן לחדש</option>
+            <option value="name-asc">שם תורם — א׳ עד ת׳</option>
+            <option value="name-desc">שם תורם — ת׳ עד א׳</option>
+            <option value="amount-desc">סכום — גדול לקטן</option>
+            <option value="amount-asc">סכום — קטן לגדול</option>
+          </select>
+          {(filterYear || filterMonth) && (
+            <div style={{ fontWeight: 600, color: 'var(--green)', alignSelf: 'center' }}>
               סה"כ: {formatILS(totalFiltered)}
             </div>
           )}
           <button
             className="btn btn-outline btn-sm"
             style={{ marginRight: 'auto' }}
-            onClick={() => printAllReceipts(filtered)}
-            title={`הדפס ${filtered.length} קבלות`}
+            onClick={() => printAllReceipts(sorted)}
+            title={`הדפס ${sorted.length} קבלות`}
           >
-            🖨️ הדפס הכל ({filtered.length})
+            🖨️ הדפס הכל ({sorted.length})
           </button>
         </div>
 
@@ -309,12 +339,12 @@ export default function Donations() {
               </thead>
               <tbody>
                 {loading && <tr><td colSpan={8} style={{ textAlign: 'center', padding: 30 }}>טוען...</td></tr>}
-                {!loading && filtered.length === 0 && (
+                {!loading && sorted.length === 0 && (
                   <tr><td colSpan={8}>
                     <div className="empty-state"><div className="icon">💰</div><p>אין תרומות להצגה</p></div>
                   </td></tr>
                 )}
-                {filtered.map(d => (
+                {sorted.map(d => (
                   <tr key={d.id}>
                     <td style={{ fontWeight: 700, color: 'var(--navy)', whiteSpace: 'nowrap' }}>{d.receiptNumber ? formatReceiptNum(d.receiptNumber) : '—'}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{d.date}</td>
@@ -344,7 +374,7 @@ export default function Donations() {
                   </tr>
                 ))}
               </tbody>
-              {filtered.length > 0 && (
+              {sorted.length > 0 && (
                 <tfoot>
                   <tr style={{ background: 'var(--gray-50)' }}>
                     <td colSpan={4} style={{ fontWeight: 700, padding: '12px 16px' }}>סה"כ</td>
