@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head><meta charset="UTF-8">
+<title>מחק הכל — התחל מחדש</title>
+<style>
+  body { font-family: Arial, sans-serif; direction: rtl; padding: 40px; background: #f8d7da; }
+  .box { background: white; border-radius: 12px; padding: 30px; max-width: 500px; margin: auto; box-shadow: 0 2px 12px #0002; }
+  h2 { color: #721c24; }
+  .btn { background: #721c24; color: white; border: none; padding: 14px 28px; border-radius: 8px; font-size: 1.1rem; cursor: pointer; width: 100%; margin-top: 20px; }
+  .btn:hover { background: #a71d2a; }
+  .done { color: #155724; font-weight: bold; font-size: 1.1rem; margin-top: 16px; display: none; }
+  .next { background: #d4edda; border-radius: 8px; padding: 16px; margin-top: 20px; display: none; }
+  .next h3 { margin: 0 0 8px; color: #155724; }
+  .next a { color: #1a2744; display: block; margin: 4px 0; font-weight: bold; }
+  p.warn { color: #856404; background: #fff3cd; padding: 10px; border-radius: 6px; }
+</style>
+</head>
+<body><div class="box">
+  <h2>⚠️ מחיקת כל הנתונים</h2>
+  <p class="warn">פעולה זו תמחק את כל התרומות, ההוצאות ויתרת הפתיחה מהאפליקציה. לא ניתן לבטל!</p>
+  <p>לאחר הניקוי — ייבא רק 2026 ועדכן יתרת פתיחה:</p>
+  <button class="btn" onclick="doCleanup()">מחק הכל ← התחל מחדש</button>
+  <div class="done" id="done"></div>
+  <div class="next" id="next">
+    <h3>צעדים הבאים:</h3>
+    <a href="import2026.html">1. ייבא ינואר–אפריל 2026</a>
+    <a href="import2026may.html">2. ייבא מאי–יוני 2026</a>
+    <p style="margin:12px 0 4px;color:#155724;font-weight:bold">3. הגדרות ← יתרת פתיחה: <big>19,651 ₪</big></p>
+    <p style="color:#555;font-size:0.9rem;">← יתרת הבנק ב-31/12/2025</p>
+  </div>
+</div>
+<script>
+function doCleanup() {
+  const allDon = JSON.parse(localStorage.getItem('halichot_olam_donations') || '[]');
+  const allExp = JSON.parse(localStorage.getItem('halichot_olam_expenses') || '[]');
+  localStorage.removeItem('halichot_olam_donations');
+  localStorage.removeItem('halichot_olam_expenses');
+  localStorage.removeItem('halichot_olam_opening_balance');
+  const done = document.getElementById('done');
+  done.textContent = `✅ נמחקו ${allDon.length} תרומות ו-${allExp.length} הוצאות. יתרת הפתיחה אופסה.`;
+  done.style.display = 'block';
+  document.getElementById('next').style.display = 'block';
+}
+</script>
+</body></html>

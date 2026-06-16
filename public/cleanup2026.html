@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head><meta charset="UTF-8">
+<title>ניקוי נתוני 2026</title>
+<style>
+  body { font-family: Arial, sans-serif; direction: rtl; padding: 40px; background: #fff3cd; }
+  .box { background: white; border-radius: 12px; padding: 30px; max-width: 500px; margin: auto; box-shadow: 0 2px 12px #0002; }
+  h2 { color: #856404; }
+  .btn { background: #dc3545; color: white; border: none; padding: 14px 28px; border-radius: 8px; font-size: 1.1rem; cursor: pointer; width: 100%; margin-top: 20px; }
+  .btn:hover { background: #a71d2a; }
+  .done { color: #155724; font-weight: bold; font-size: 1.1rem; margin-top: 16px; display: none; }
+  a { color: #1a2744; }
+</style>
+</head>
+<body><div class="box">
+  <h2>⚠️ ניקוי נתוני 2026</h2>
+  <p>מוחק את כל נתוני 2026 מהאפליקציה כדי לאפשר ייבוא מחדש נקי.</p>
+  <p>אחרי הניקוי — ייבא לפי הסדר:<br>
+    1. <a href="import2026.html">import2026.html</a> (ינואר–אפריל)<br>
+    2. <a href="import2026may.html">import2026may.html</a> (מאי–יוני)
+  </p>
+  <button class="btn" onclick="doCleanup()">מחק נתוני 2026</button>
+  <div class="done" id="done"></div>
+</div>
+<script>
+function doCleanup() {
+  const donKey = 'halichot_olam_donations';
+  const expKey = 'halichot_olam_expenses';
+  const allDon = JSON.parse(localStorage.getItem(donKey) || '[]');
+  const allExp = JSON.parse(localStorage.getItem(expKey) || '[]');
+  const don26 = allDon.filter(x => (x.date || '').startsWith('2026'));
+  const exp26 = allExp.filter(x => (x.date || '').startsWith('2026'));
+  localStorage.setItem(donKey, JSON.stringify(allDon.filter(x => !(x.date || '').startsWith('2026'))));
+  localStorage.setItem(expKey, JSON.stringify(allExp.filter(x => !(x.date || '').startsWith('2026'))));
+  document.getElementById('done').textContent = `✅ נמחקו ${don26.length} תרומות ו-${exp26.length} הוצאות של 2026.`;
+  document.getElementById('done').style.display = 'block';
+}
+</script>
+</body></html>
