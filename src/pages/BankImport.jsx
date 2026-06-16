@@ -178,7 +178,7 @@ export default function BankImport() {
     for (const t of list) {
       const noteStr = `אסמכתה: ${t.ref}${t.ref ? ' | ' : ''}${t.desc}`;
       if (t.isIncome) {
-        await addDonation({ donorName: t.matched || t.name, amountILS: t.amount, currency: '₪', date: t.date, bankRef: t.ref, notes: noteStr });
+        await addDonation({ donorName: t.matched || t.name, amountILS: t.amount, currency: '₪', date: t.date, bankRef: t.ref, notes: noteStr, paymentMethod: 'העברה בנקאית' });
         donated++;
       } else {
         await addExpense({ description: t.matched || t.name, amount: t.amount, category: t.category, date: t.date, payee: t.matched || t.name, bankRef: t.ref, notes: noteStr });

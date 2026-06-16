@@ -25,7 +25,7 @@ function receiptText(d) {
   const amt = parseFloat(d.amountILS || d.amount || 0).toLocaleString('he-IL');
   const ref = d.reference ? `\nאסמכתא: ${d.reference}` : '';
   const num = d.receiptNumber ? `\nמספר קבלה: ${formatReceiptNum(d.receiptNumber)}` : '';
-  return `שלום ${d.donorName},\n\nתודה רבה על תרומתך הנדיבה לעמותת *תפארת מישאל – הליכות עולם*.\n\n💰 סכום: ₪${amt}\n📅 תאריך: ${d.date}${ref}${num}\n💳 אמצעי תשלום: ${d.paymentMethod || ''}\n\nיהי רצון שתזכה לראות פרי ברכה מתרומתך.\n\nבברכה,\nתפארת מישאל – הליכות עולם`;
+  return `שלום ${d.donorName},\n\nתודה רבה על תרומתכם הנדיבה לעמותת *תפארת מישאל – הליכות עולם*.\n\n💰 סכום: ₪${amt}\n📅 תאריך: ${d.date}${ref}${num}\n💳 אמצעי תשלום: ${d.paymentMethod || ''}\n\nיהי רצון שתזכו לראות פרי ברכה מתרומתכם.\n\nבברכה,\nתפארת מישאל – הליכות עולם`;
 }
 
 function sendWhatsApp(d, donors) {
@@ -83,7 +83,7 @@ function printReceipt(d) {
         ${d.notes ? `<tr><td>הערות</td><td>${d.notes}</td></tr>` : ''}
       </table>
     </div>
-    <div class="thankyou">יהי רצון שתזכה לראות פרי ברכה מתרומתך הנדיבה.</div>
+    <div class="thankyou">יהי רצון שתזכו לראות פרי ברכה מתרומתכם הנדיבה.</div>
     <div class="footer">הופק: ${new Date().toLocaleDateString('he-IL')} · תפארת מישאל – הליכות עולם</div>
   </div>
   <script>window.onload = () => window.print();</script>
