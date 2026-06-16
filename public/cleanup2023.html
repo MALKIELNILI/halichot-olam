@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>ניקוי נתונים שגויים 2023</title>
+<style>
+  body { font-family: Arial, sans-serif; direction: rtl; padding: 40px; background: #fff3cd; }
+  .box { background: white; border-radius: 12px; padding: 30px; max-width: 500px; margin: auto; box-shadow: 0 2px 12px #0002; }
+  h2 { color: #856404; }
+  .btn { background: #dc3545; color: white; border: none; padding: 14px 28px; border-radius: 8px; font-size: 1.1rem; cursor: pointer; width: 100%; margin-top: 20px; }
+  .btn:hover { background: #a71d2a; }
+  .done { color: #155724; font-weight: bold; font-size: 1.1rem; margin-top: 16px; display: none; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h2>⚠️ ניקוי נתונים שגויים 2023</h2>
+  <p>שלב זה מוחק את כל נתוני 2023 מהאפליקציה (תרומות והוצאות) כדי לאפשר ייבוא מחדש עם נתונים מתוקנים.</p>
+  <p><strong>אחרי הניקוי</strong> — פתח את <a href="import2023.html">import2023.html</a> כדי לייבא מחדש.</p>
+  <button class="btn" onclick="doCleanup()">מחק נתוני 2023 שגויים</button>
+  <div class="done" id="done"></div>
+</div>
+<script>
+function doCleanup() {
+  const donKey = 'halichot_olam_donations';
+  const expKey = 'halichot_olam_expenses';
+
+  const allDon = JSON.parse(localStorage.getItem(donKey) || '[]');
+  const allExp = JSON.parse(localStorage.getItem(expKey) || '[]');
+
+  const don2023 = allDon.filter(x => (x.date || '').startsWith('2023-'));
+  const exp2023 = allExp.filter(x => (x.date || '').startsWith('2023-'));
+
+  const newDon = allDon.filter(x => !(x.date || '').startsWith('2023-'));
+  const newExp = allExp.filter(x => !(x.date || '').startsWith('2023-'));
+
+  localStorage.setItem(donKey, JSON.stringify(newDon));
+  localStorage.setItem(expKey, JSON.stringify(newExp));
+
+  const el = document.getElementById('done');
+  el.textContent = `✅ נמחקו ${don2023.length} תרומות ו-${exp2023.length} הוצאות של 2023. עכשיו פתח import2023.html לייבוא מחדש.`;
+  el.style.display = 'block';
+}
+</script>
+</body>
+</html>
