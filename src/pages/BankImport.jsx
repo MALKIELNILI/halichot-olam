@@ -31,16 +31,27 @@ function extractName(desc, isIncome) {
   return desc;
 }
 
+// שמות ארגונים — לא להתאים לאנשים פרטיים
+const ORG_NAMES = ['תפארת מישאל', 'torah chesed', 'yad yosef'];
+
 function fuzzyMatch(bankName, candidates) {
   if (!bankName || !candidates.length) return null;
+  const lower = bankName.toLowerCase();
+  if (ORG_NAMES.some(org => lower.includes(org.toLowerCase()))) return null;
+
   const words = bankName.split(/[\s,]+/).filter(w => w.length > 2);
+
+  // ניקוד: מי שמתאים יותר מילים — עדיף
+  let best = null, bestScore = 0;
   for (const cand of candidates) {
-    for (const w of words) { if (cand.includes(w)) return cand; }
+    let score = 0;
+    for (const w of words) { if (cand.includes(w)) score += 2; }
     for (const cw of cand.split(/\s+/).filter(w => w.length > 2)) {
-      if (bankName.includes(cw)) return cand;
+      if (bankName.includes(cw)) score++;
     }
+    if (score > bestScore) { bestScore = score; best = cand; }
   }
-  return null;
+  return bestScore > 0 ? best : null;
 }
 
 function autoCategory(desc) {
