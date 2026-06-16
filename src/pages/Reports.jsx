@@ -103,10 +103,10 @@ export default function Reports() {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  // ── Accountant report ──
+  // ── Accountant report (period) ──
   const printAccountantReport = () => {
-    const filtDon = donations.filter(d => !month || monthKey(d.date) === month);
-    const filtExp = expenses.filter(e => !month || monthKey(e.date) === month);
+    const filtDon = donations.filter(d => (!year || d.date?.startsWith(year)) && (!month || monthKey(d.date) === month));
+    const filtExp = expenses.filter(e => (!year || e.date?.startsWith(year)) && (!month || monthKey(e.date) === month));
     const totalDon = sumField(filtDon, 'amountILS');
     const totalExp = sumField(filtExp, 'amount');
     const periodLabel = month ? heMonthYear(month) : `שנת ${year}`;
@@ -122,90 +122,159 @@ export default function Reports() {
       })),
     ].sort((a, b) => a.date.localeCompare(b.date));
 
+    const STYLES = `
+      @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700&display=swap');
+      body { font-family: 'Heebo', sans-serif; direction: rtl; padding: 40px; color: #1a2744; font-size: 13px; }
+      .header { border-bottom: 3px solid #b8973a; padding-bottom: 16px; margin-bottom: 24px; }
+      .org-name { font-size: 22px; font-weight: 700; }
+      .org-sub  { font-size: 14px; color: #6b6762; }
+      .report-title { font-size: 16px; font-weight: 700; margin: 16px 0 4px; }
+      .period { color: #6b6762; font-size: 13px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th { background: #1a2744; color: white; padding: 9px 12px; text-align: right; font-size: 11px; }
+      td { padding: 8px 12px; border-bottom: 1px solid #e2e0dc; }
+      tr:nth-child(even) { background: #f8f5ef; }
+      .income  { color: #2a6b4a; font-weight: 600; }
+      .expense { color: #8b2020; font-weight: 600; }
+      .summary { margin-top: 24px; border: 1px solid #e2e0dc; border-radius: 8px; padding: 16px; }
+      .summary-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f0f0ee; }
+      .summary-row:last-child { border-bottom: none; font-weight: 700; font-size: 15px; }
+      .footer { margin-top: 32px; font-size: 11px; color: #9e9b95; border-top: 1px solid #e2e0dc; padding-top: 12px; }
+      @media print { body { padding: 20px; } }`;
+
     const win = window.open('', '_blank');
-    win.document.write(`
-      <!DOCTYPE html>
-      <html lang="he" dir="rtl">
-      <head>
-        <meta charset="UTF-8">
-        <title>דוח כספי – תפארת מישאל</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700&display=swap');
-          body { font-family: 'Heebo', sans-serif; direction: rtl; padding: 40px; color: #1a2744; font-size: 13px; }
-          .header { border-bottom: 3px solid #b8973a; padding-bottom: 16px; margin-bottom: 24px; }
-          .org-name { font-size: 22px; font-weight: 700; color: #1a2744; }
-          .org-sub { font-size: 14px; color: #6b6762; }
-          .report-title { font-size: 16px; font-weight: 700; margin: 16px 0 4px; }
-          .period { color: #6b6762; font-size: 13px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th { background: #1a2744; color: white; padding: 9px 12px; text-align: right; font-size: 11px; }
-          td { padding: 8px 12px; border-bottom: 1px solid #e2e0dc; }
-          tr:nth-child(even) { background: #f8f5ef; }
-          .income { color: #2a6b4a; font-weight: 600; }
-          .expense { color: #8b2020; font-weight: 600; }
-          .summary { margin-top: 24px; border: 1px solid #e2e0dc; border-radius: 8px; padding: 16px; }
-          .summary-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f0f0ee; }
-          .summary-row:last-child { border-bottom: none; font-weight: 700; font-size: 15px; }
-          .footer { margin-top: 32px; font-size: 11px; color: #9e9b95; border-top: 1px solid #e2e0dc; padding-top: 12px; }
-          @media print { body { padding: 20px; } }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="org-name">תפארת מישאל – הליכות עולם</div>
-          <div class="org-sub">צונץ 11, תל אביב</div>
-          <div class="report-title">דוח כספי</div>
-          <div class="period">תקופה: ${periodLabel} | הופק: ${new Date().toLocaleDateString('he-IL')}</div>
-        </div>
+    win.document.write(`<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8"><title>דוח כספי – תפארת מישאל</title><style>${STYLES}</style></head><body>
+      <div class="header">
+        <div class="org-name">תפארת מישאל – הליכות עולם</div>
+        <div class="org-sub">צונץ 11, תל אביב</div>
+        <div class="report-title">דוח כספי</div>
+        <div class="period">תקופה: ${periodLabel} | הופק: ${new Date().toLocaleDateString('he-IL')}</div>
+      </div>
+      <table><thead><tr><th>תאריך</th><th>סוג</th><th>קטגוריה</th><th>תיאור</th><th>אסמכתא</th><th>סכום (₪)</th></tr></thead>
+      <tbody>${rows.map(r => `<tr><td>${r.date}</td><td class="${r.type==='הכנסה'?'income':'expense'}">${r.type}</td><td>${r.category}</td><td>${r.desc}</td><td>${r.ref}</td><td class="${r.type==='הכנסה'?'income':'expense'}">${r.amount}</td></tr>`).join('')}</tbody></table>
+      <div class="summary">
+        <div class="summary-row"><span>סך הכנסות</span><span class="income">+ ${totalDon.toLocaleString('he-IL')} ₪</span></div>
+        <div class="summary-row"><span>סך הוצאות</span><span class="expense">- ${totalExp.toLocaleString('he-IL')} ₪</span></div>
+        <div class="summary-row"><span>מאזן תקופה</span><span class="${totalDon-totalExp>=0?'income':'expense'}">${(totalDon-totalExp).toLocaleString('he-IL')} ₪</span></div>
+      </div>
+      <div class="footer">הופק: ${new Date().toLocaleDateString('he-IL',{hour:'2-digit',minute:'2-digit'})} · תפארת מישאל – הליכות עולם</div>
+      <script>window.onload=()=>window.print();<\/script></body></html>`);
+    win.document.close();
+  };
 
-        <table>
-          <thead>
-            <tr>
-              <th>תאריך</th>
-              <th>סוג</th>
-              <th>קטגוריה</th>
-              <th>תיאור</th>
-              <th>אסמכתא</th>
-              <th>סכום (₪)</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows.map(r => `
-              <tr>
-                <td>${r.date}</td>
-                <td class="${r.type === 'הכנסה' ? 'income' : 'expense'}">${r.type}</td>
-                <td>${r.category}</td>
-                <td>${r.desc}</td>
-                <td>${r.ref}</td>
-                <td class="${r.type === 'הכנסה' ? 'income' : 'expense'}">${r.amount}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+  // ── Annual report for "ניהול תקין" ──
+  const printAnnualReport = () => {
+    const filtDon = donations.filter(d => d.date?.startsWith(year));
+    const filtExp = expenses.filter(e => e.date?.startsWith(year));
+    const totalDon = sumField(filtDon, 'amountILS');
+    const totalExp = sumField(filtExp, 'amount');
+    const net = totalDon - totalExp;
+    const fmt = n => parseFloat(n||0).toLocaleString('he-IL');
 
-        <div class="summary">
-          <div class="summary-row">
-            <span>סך הכנסות</span>
-            <span class="income">+ ${totalDon.toLocaleString('he-IL')} ₪</span>
-          </div>
-          <div class="summary-row">
-            <span>סך הוצאות</span>
-            <span class="expense">- ${totalExp.toLocaleString('he-IL')} ₪</span>
-          </div>
-          <div class="summary-row">
-            <span>מאזן תקופה</span>
-            <span class="${totalDon - totalExp >= 0 ? 'income' : 'expense'}">${(totalDon - totalExp).toLocaleString('he-IL')} ₪</span>
-          </div>
-        </div>
+    // Monthly breakdown
+    const mKeys = [...new Set([...filtDon.map(d=>monthKey(d.date)), ...filtExp.map(e=>monthKey(e.date))].filter(Boolean))].sort();
+    const monthlyRows = mKeys.map(mk => {
+      const inc = sumField(filtDon.filter(d=>monthKey(d.date)===mk), 'amountILS');
+      const exp = sumField(filtExp.filter(e=>monthKey(e.date)===mk), 'amount');
+      return { mk, inc, exp, net: inc-exp };
+    });
 
-        <div class="footer">
-          דוח זה הופק ממערכת ניהול עמותה "הליכות עולם" · ${new Date().toLocaleDateString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-        </div>
+    // Donor summary
+    const donorMap = {};
+    filtDon.forEach(d => {
+      const k = d.donorName || 'לא ידוע';
+      if (!donorMap[k]) donorMap[k] = { name: k, total: 0, count: 0 };
+      donorMap[k].total += parseFloat(d.amountILS||0);
+      donorMap[k].count++;
+    });
+    const donorRows = Object.values(donorMap).sort((a,b)=>b.total-a.total);
 
-        <script>window.onload = () => window.print();</script>
-      </body>
-      </html>
-    `);
+    // Category summary
+    const catMap = {};
+    filtExp.forEach(e => {
+      const k = e.category||'אחר';
+      if (!catMap[k]) catMap[k] = { cat: k, total: 0 };
+      catMap[k].total += parseFloat(e.amount||0);
+    });
+    const catRows = Object.values(catMap).sort((a,b)=>b.total-a.total);
+
+    const STYLES = `
+      @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;800&display=swap');
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:'Heebo',sans-serif;direction:rtl;color:#1a2744;background:#fff;font-size:13px}
+      .cover{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;background:#1a2744;color:#fff;padding:60px 40px;page-break-after:always}
+      .cover-org{font-size:32px;font-weight:800;margin-bottom:8px}
+      .cover-sub{font-size:16px;opacity:0.7;margin-bottom:40px}
+      .cover-title{font-size:22px;font-weight:700;background:#b8973a;padding:16px 40px;border-radius:8px;margin-bottom:24px}
+      .cover-year{font-size:48px;font-weight:800;letter-spacing:4px;margin-bottom:8px}
+      .cover-period{font-size:14px;opacity:0.6}
+      .cover-date{margin-top:40px;font-size:13px;opacity:0.5}
+      .section{padding:40px;page-break-inside:avoid}
+      .section-title{font-size:18px;font-weight:700;border-bottom:3px solid #b8973a;padding-bottom:10px;margin-bottom:20px}
+      .summary-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px}
+      .summary-card{border:1px solid #e2e0dc;border-radius:10px;padding:20px;text-align:center}
+      .summary-label{font-size:12px;color:#6b6762;margin-bottom:6px}
+      .summary-val{font-size:24px;font-weight:700}
+      .income{color:#2a6b4a}.expense{color:#8b2020}.neutral{color:#1a2744}
+      table{width:100%;border-collapse:collapse;margin-top:12px;font-size:12px}
+      th{background:#1a2744;color:#fff;padding:8px 10px;text-align:right;font-size:11px}
+      td{padding:7px 10px;border-bottom:1px solid #e8e6e0}
+      tr:nth-child(even){background:#f8f5ef}
+      tfoot td{font-weight:700;background:#f0ece3;padding:9px 10px}
+      .footer{text-align:center;padding:20px;font-size:11px;color:#9e9b95;border-top:1px solid #e2e0dc;margin-top:20px}
+      @media print{.section{padding:20px}.cover{page-break-after:always}}`;
+
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8"><title>דוח שנתי ${year} – תפארת מישאל</title><style>${STYLES}</style></head><body>
+
+    <div class="cover">
+      <div class="cover-org">תפארת מישאל</div>
+      <div class="cover-sub">הליכות עולם · צונץ 11, תל אביב</div>
+      <div class="cover-title">דוח כספי שנתי</div>
+      <div class="cover-year">${year}</div>
+      <div class="cover-period">1 בינואר ${year} – 31 בדצמבר ${year}</div>
+      <div class="cover-date">הופק: ${new Date().toLocaleDateString('he-IL')}</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">סיכום שנתי</div>
+      <div class="summary-grid">
+        <div class="summary-card"><div class="summary-label">סך הכנסות</div><div class="summary-val income">${fmt(totalDon)} ₪</div></div>
+        <div class="summary-card"><div class="summary-label">סך הוצאות</div><div class="summary-val expense">${fmt(totalExp)} ₪</div></div>
+        <div class="summary-card"><div class="summary-label">מאזן שנתי</div><div class="summary-val ${net>=0?'income':'expense'}">${net>=0?'+':''}${fmt(net)} ₪</div></div>
+      </div>
+      <table><thead><tr><th>חודש</th><th>הכנסות (₪)</th><th>הוצאות (₪)</th><th>מאזן (₪)</th></tr></thead>
+      <tbody>${monthlyRows.map(r=>`<tr><td>${heMonthYear(r.mk)}</td><td class="income">${fmt(r.inc)}</td><td class="expense">${fmt(r.exp)}</td><td class="${r.net>=0?'income':'expense'}">${r.net>=0?'+':''}${fmt(r.net)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td>סה"כ</td><td class="income">${fmt(totalDon)}</td><td class="expense">${fmt(totalExp)}</td><td class="${net>=0?'income':'expense'}">${net>=0?'+':''}${fmt(net)}</td></tr></tfoot>
+      </table>
+    </div>
+
+    <div class="section" style="page-break-before:always">
+      <div class="section-title">פירוט תורמים – ${year} (${donorRows.length} תורמים)</div>
+      <table><thead><tr><th>#</th><th>שם התורם</th><th>מספר תרומות</th><th>סך תרומות (₪)</th></tr></thead>
+      <tbody>${donorRows.map((d,i)=>`<tr><td>${i+1}</td><td style="font-weight:600">${d.name}</td><td>${d.count}</td><td class="income">${fmt(d.total)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="2">סה"כ</td><td>${filtDon.length}</td><td class="income">${fmt(totalDon)}</td></tr></tfoot>
+      </table>
+    </div>
+
+    <div class="section" style="page-break-before:always">
+      <div class="section-title">פירוט הוצאות לפי קטגוריה – ${year}</div>
+      <table><thead><tr><th>קטגוריה</th><th>סך הוצאות (₪)</th><th>אחוז</th></tr></thead>
+      <tbody>${catRows.map(c=>`<tr><td>${c.cat}</td><td class="expense">${fmt(c.total)}</td><td>${totalExp>0?(c.total/totalExp*100).toFixed(1)+'%':'—'}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td>סה"כ</td><td class="expense">${fmt(totalExp)}</td><td>100%</td></tr></tfoot>
+      </table>
+    </div>
+
+    <div class="section" style="page-break-before:always">
+      <div class="section-title">פירוט כל ההוצאות – ${year} (${filtExp.length} רשומות)</div>
+      <table><thead><tr><th>תאריך</th><th>קטגוריה</th><th>תיאור</th><th>אסמכתא</th><th>סכום (₪)</th></tr></thead>
+      <tbody>${[...filtExp].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(e=>`<tr><td>${e.date}</td><td>${e.category||'—'}</td><td>${e.description||e.payee||'—'}</td><td style="font-size:11px;color:#888">${e.bankRef||e.reference||'—'}</td><td class="expense">${fmt(e.amount)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="4">סה"כ</td><td class="expense">${fmt(totalExp)}</td></tr></tfoot>
+      </table>
+    </div>
+
+    <div class="footer">דוח שנתי ${year} · תפארת מישאל – הליכות עולם · הופק: ${new Date().toLocaleDateString('he-IL')}</div>
+    <script>window.onload=()=>window.print();<\/script></body></html>`);
     win.document.close();
   };
 
@@ -227,6 +296,7 @@ export default function Reports() {
           </select>
           <button className="btn btn-outline" onClick={sendWhatsAppReport}>📱 שלח וואטסאפ לרו"ח</button>
           <button className="btn btn-gold" onClick={printAccountantReport}>🖨️ הדפס לרו"ח</button>
+          <button className="btn btn-primary" onClick={printAnnualReport} title={`דוח שנתי מלא לניהול תקין – ${year}`}>📋 דוח שנתי {year}</button>
         </div>
       </div>
 
