@@ -426,9 +426,75 @@ tbody tr:last-child td { border-bottom: none; }
 .tab:hover { color: var(--navy); }
 .tab.active { color: var(--navy); border-bottom-color: var(--gold); }
 
+/* ── Mobile header (hidden on desktop) ── */
+.mobile-header { display: none; }
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  .sidebar { display: none; }
+  /* Show mobile header */
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--navy);
+    padding: 0 12px;
+    height: 54px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+  }
+
+  .mobile-title {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--gold-light);
+  }
+
+  .hamburger {
+    background: none;
+    border: none;
+    color: var(--white);
+    font-size: 1.5rem;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    padding: 0;
+  }
+
+  /* Stack header + content vertically */
+  .app-shell { flex-direction: column; min-height: calc(100vh - 54px); }
+
+  /* Sidebar becomes a fixed slide-in drawer from the right */
+  .sidebar {
+    position: fixed;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 78%;
+    max-width: 280px;
+    transform: translateX(100%);
+    transition: transform 0.28s ease;
+    z-index: 300;
+    /* Keep display:flex — override the old display:none */
+    display: flex !important;
+  }
+
+  .sidebar.open { transform: translateX(0); }
+
+  /* Dark overlay behind the drawer */
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.52);
+    z-index: 299;
+  }
+
   .page-body { padding: 16px; }
   .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
 }

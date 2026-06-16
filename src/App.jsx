@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import Donations from './pages/Donations';
 import Expenses from './pages/Expenses';
@@ -23,43 +23,54 @@ const NAV = [
   { to: '/settings', icon: '⚙️', label: 'הגדרות' },
 ];
 
-function Sidebar() {
+function Sidebar({ mobileOpen, onClose }) {
   return (
-    <aside className="sidebar">
-      <div className="sidebar-logo">
-        <div className="org-name">תפארת מישאל</div>
-        <div className="org-sub">הליכות עולם</div>
-        <div className="org-addr">צונץ 11, תל אביב</div>
-      </div>
-      <nav className="sidebar-nav">
-        {NAV.map((item, i) =>
-          item.section ? (
-            <div key={i} className="nav-section-label">{item.section}</div>
-          ) : (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}
-            >
-              <span className="icon">{item.icon}</span>
-              {item.label}
-            </NavLink>
-          )
-        )}
-      </nav>
-      <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>
-        גרסה 1.0 · {new Date().getFullYear()}
-      </div>
-    </aside>
+    <>
+      {mobileOpen && <div className="sidebar-overlay" onClick={onClose} />}
+      <aside className={`sidebar${mobileOpen ? ' open' : ''}`}>
+        <div className="sidebar-logo">
+          <div className="org-name">תפארת מישאל</div>
+          <div className="org-sub">הליכות עולם</div>
+          <div className="org-addr">צונץ 11, תל אביב</div>
+        </div>
+        <nav className="sidebar-nav">
+          {NAV.map((item, i) =>
+            item.section ? (
+              <div key={i} className="nav-section-label">{item.section}</div>
+            ) : (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === '/'}
+                className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}
+                onClick={onClose}
+              >
+                <span className="icon">{item.icon}</span>
+                {item.label}
+              </NavLink>
+            )
+          )}
+        </nav>
+        <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>
+          גרסה 1.0 · {new Date().getFullYear()}
+        </div>
+      </aside>
+    </>
   );
 }
 
 function App() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
     <BrowserRouter basename="/halichot-olam">
       <div className="app-shell">
-        <Sidebar />
+        <header className="mobile-header">
+          <span style={{ width: 40 }} />
+          <span className="mobile-title">תפארת מישאל</span>
+          <button className="hamburger" onClick={() => setMobileOpen(true)} aria-label="תפריט">☰</button>
+        </header>
+        <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Dashboard />} />
