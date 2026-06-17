@@ -36,48 +36,57 @@ function sendWhatsApp(d, donors) {
   window.open(url, '_blank');
 }
 
-const LOGO_URL = 'https://malkielnili.github.io/halichot-olam/logo-tiferet.svg';
+const LOGO_URL = 'https://malkielnili.github.io/halichot-olam/logo.jpg';
 
 const RECEIPT_STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@700;900&family=Heebo:wght@400;600;700&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Heebo', sans-serif; direction: rtl; color: #1a2744; background: #fff; }
-  .receipt { max-width: 480px; margin: 40px auto; border: 2px solid #b8973a; border-radius: 12px; overflow: hidden; }
-  .bsd { text-align: left; font-size: 13px; font-weight: 600; color: #1a2744; padding: 6px 14px 0; font-family: 'Frank Ruhl Libre', serif; }
-  .header { background: #1a2744; color: white; padding: 20px 24px; text-align: center; }
-  .header-logo { width: 60px; height: 60px; object-fit: contain; border-radius: 50%; background: #fff; padding: 6px; margin-bottom: 10px; }
-  .org { font-size: 20px; font-weight: 700; }
-  .org-reg { font-size: 11px; opacity: 0.55; margin-top: 2px; letter-spacing: 0.4px; }
-  .org-sub { font-size: 12px; opacity: 0.65; margin-top: 3px; }
-  .receipt-title { background: #b8973a; color: white; text-align: center; padding: 10px; font-size: 18px; font-weight: 700; letter-spacing: 2px; }
-  .body { padding: 28px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-  td { padding: 10px 8px; border-bottom: 1px solid #e2e0dc; font-size: 15px; }
-  td:first-child { color: #6b6762; width: 42%; }
-  td:last-child { font-weight: 600; }
-  .amount-row td:last-child { font-size: 22px; color: #2a6b4a; font-weight: 700; }
-  .mosad-row td { font-size: 13px; background: #f0faf4; color: #2a6b4a; }
-  .footer { text-align: center; padding: 14px; font-size: 11px; color: #9e9b95; border-top: 1px solid #e2e0dc; }
-  .thankyou { text-align: center; padding: 18px 28px 0; font-size: 13px; color: #6b6762; line-height: 1.7; }
-  @media print { .receipt { margin: 0 auto; border-radius: 0; page-break-after: always; } .receipt:last-child { page-break-after: avoid; } }
+  body { font-family: 'Heebo', sans-serif; direction: rtl; background: #fff; }
+  .receipt { max-width: 480px; margin: 30px auto; background: white; overflow: hidden; border-top: 8px solid #1a2744; box-shadow: 0 6px 30px rgba(0,0,0,0.2); }
+  .bsd-top { text-align: right; font-family: 'Frank Ruhl Libre', serif; font-size: 13px; font-weight: 700; color: #1a2744; padding: 8px 16px 0; }
+  .header { display: flex; align-items: center; border-bottom: 3px solid #b8973a; }
+  .logo-block { background: #1a2744; padding: 16px 14px; display: flex; align-items: center; justify-content: center; min-width: 108px; }
+  .logo-block img { width: 76px; height: 76px; object-fit: contain; }
+  .text-block { padding: 12px 18px; flex: 1; }
+  .org { font-family: 'Frank Ruhl Libre', serif; font-size: 26px; font-weight: 900; color: #1a2744; }
+  .org-sub { font-size: 12px; color: #b8973a; font-weight: 600; margin-top: 3px; }
+  .org-reg { font-size: 10px; color: #ccc; margin-top: 5px; }
+  .receipt-title { background: #1a2744; color: #f0d060; text-align: center; padding: 9px; font-size: 16px; font-weight: 700; letter-spacing: 3px; }
+  .receipt-num { text-align: center; padding: 5px; font-size: 12px; color: #888; background: #f8f8f8; border-bottom: 1px solid #eee; }
+  .receipt-num strong { color: #1a2744; font-size: 14px; }
+  .body { padding: 18px 24px; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 9px 6px; border-bottom: 1px solid #eee; font-size: 14px; color: #222; }
+  td:first-child { color: #888; width: 42%; font-size: 13px; }
+  td:last-child { font-weight: 700; color: #1a2744; }
+  .amount-row td:last-child { font-size: 22px; color: #2a6b4a; }
+  .mosad-row td { color: #2a6b4a; font-size: 12px; background: #f0faf4; }
+  .copy-btn { font-size: 10px; background: #1a2744; color: white; border: none; border-radius: 3px; padding: 2px 7px; cursor: pointer; margin-right: 8px; vertical-align: middle; }
+  .copy-btn:hover { background: #b8973a; }
+  .thankyou { text-align: center; padding: 14px 24px 6px; font-size: 13px; color: #888; line-height: 1.7; }
+  .footer { text-align: center; padding: 10px; font-size: 11px; color: #bbb; border-top: 3px solid #1a2744; }
+  @media print { .copy-btn { display: none; } .receipt { margin: 0 auto; page-break-after: always; } .receipt:last-child { page-break-after: avoid; } }
 `;
 
 function receiptHTML(d) {
   const amt = parseFloat(d.amountILS || d.amount || 0).toLocaleString('he-IL');
   const refDisplay = d.reference || d.bankRef || '';
   const ref = refDisplay ? `<tr><td>מס׳ אסמכתא</td><td>${refDisplay}</td></tr>` : '';
-  const bankRef = '';
   const numBadge = d.receiptNumber
-    ? `<div style="text-align:center;padding:6px;background:#f8f5ef;font-size:13px;color:#6b6762;">מספר קבלה: <strong style="color:#1a2744;font-size:15px;">${formatReceiptNum(d.receiptNumber)}</strong></div>`
+    ? `<div class="receipt-num">מספר קבלה: <strong>${formatReceiptNum(d.receiptNumber)}</strong></div>`
     : '';
   return `
   <div class="receipt">
-    <div class="bsd">בס"ד</div>
+    <div class="bsd-top">בס"ד</div>
     <div class="header">
-      <img class="header-logo" src="${LOGO_URL}" onerror="this.style.display='none'" alt="לוגו" />
-      <div class="org">תפארת מישאל</div>
-      <div class="org-reg">עמותה מס׳ 580676807</div>
-      <div class="org-sub">הליכות עולם · צונץ 11, תל אביב</div>
+      <div class="logo-block">
+        <img src="${LOGO_URL}" onerror="this.style.display='none'" alt="לוגו"/>
+      </div>
+      <div class="text-block">
+        <div class="org">תפארת מישאל</div>
+        <div class="org-sub">הליכות עולם · צונץ 11, תל אביב</div>
+        <div class="org-reg">עמותה מס׳ 580676807 · קוד מוסד 26542</div>
+      </div>
     </div>
     <div class="receipt-title">קבלה על תרומה</div>
     ${numBadge}
@@ -87,9 +96,15 @@ function receiptHTML(d) {
         <tr class="amount-row"><td>סכום התרומה</td><td>₪${amt}</td></tr>
         <tr><td>תאריך תרומה</td><td>${d.date}</td></tr>
         <tr><td>אמצעי תשלום</td><td>${d.paymentMethod || '—'}</td></tr>
-        ${ref}${bankRef}
+        ${ref}
         ${d.notes ? `<tr><td>הערות</td><td>${d.notes}</td></tr>` : ''}
-        <tr class="mosad-row"><td>קוד מוסד (סעיף 46)</td><td>26542</td></tr>
+        <tr class="mosad-row">
+          <td>קוד מוסד (סעיף 46)</td>
+          <td>
+            <button class="copy-btn" onclick="navigator.clipboard.writeText('26542').then(()=>{this.textContent='✓ הועתק!';setTimeout(()=>this.textContent='העתק',2000)})">העתק</button>
+            26542
+          </td>
+        </tr>
       </table>
     </div>
     <div class="thankyou">יהי רצון שתזכו לראות פרי ברכה מתרומתכם הנדיבה.</div>
