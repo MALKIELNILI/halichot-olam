@@ -124,7 +124,7 @@ function printReceipt(d) {
   win.document.close();
 }
 
-function DonorReceiptsModal({ donations, onClose, onRenumber, renumbering }) {
+function DonorReceiptsModal({ donations, accountantPhone, onClose, onRenumber, renumbering }) {
   const [issued, setIssued] = React.useState(getIssuedDonors);
 
   React.useEffect(() => {
@@ -192,13 +192,33 @@ function DonorReceiptsModal({ donations, onClose, onRenumber, renumbering }) {
                       {nums.length > 0 && <span style={{ color: 'var(--navy)', marginRight: 6 }}>· קבלות: {nums[0]}{nums.length > 1 ? `–${nums[nums.length-1]}` : ''}</span>}
                     </div>
                   </div>
-                  <button
-                    className="btn btn-outline btn-sm"
-                    style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-                    onClick={() => { printAllReceipts(sorted); markDonorIssued(name); setIssued(getIssuedDonors()); }}
-                  >
-                    🖨️ PDF
-                  </button>
+                  <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+                    <button
+                      className="btn btn-outline btn-sm"
+                      style={{ whiteSpace: 'nowrap' }}
+                      onClick={() => { printAllReceipts(sorted); markDonorIssued(name); setIssued(getIssuedDonors()); }}
+                    >
+                      🖨️ PDF
+                    </button>
+                    <button
+                      className="btn btn-sm"
+                      style={{ background: '#25d366', color: 'white', whiteSpace: 'nowrap' }}
+                      title={accountantPhone ? `שלח לרו"ח (${accountantPhone})` : 'הזן מספר רו"ח בהגדרות'}
+                      onClick={() => {
+                        const phone = accountantPhone?.replace(/\D/g, '').replace(/^0/, '');
+                        if (!phone) return alert('הזן מספר רו"ח בהגדרות תחילה');
+                        const lines = sorted.map(d => {
+                          const amt = parseFloat(d.amountILS || d.amount || 0).toLocaleString('he-IL');
+                          const num = d.receiptNumber ? ` | קבלה ${formatReceiptNum(d.receiptNumber)}` : '';
+                          return `• ${d.date} | ₪${amt}${num}`;
+                        }).join('\n');
+                        const msg = `שלום,\nסיכום תרומות – תפארת מישאל\nתורם: ${name}\n\n${lines}\n\nסה"כ: ₪${total.toLocaleString('he-IL')} (${dons.length} תרומות)\n\nבברכה`;
+                        openLink(`https://wa.me/972${phone}?text=${encodeURIComponent(msg)}`);
+                      }}
+                    >
+                      📱
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -851,6 +871,7 @@ export default function Donations() {
       {donorReceiptsOpen && (
         <DonorReceiptsModal
           donations={donations}
+          accountantPhone={accountantPhone}
           onClose={() => setDonorReceiptsOpen(false)}
           onRenumber={renumberByDate}
           renumbering={renumbering}
