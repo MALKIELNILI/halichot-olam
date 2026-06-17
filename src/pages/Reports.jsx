@@ -7,7 +7,7 @@ export default function Reports() {
   const { data: expenses }  = useExpenses();
   const { data: scholars }  = useScholars();
   const [tab, setTab]       = useState('monthly');
-  const [year, setYear]     = useState(new Date().getFullYear().toString());
+  const [year, setYear]     = useState('');
   const [month, setMonth]   = useState('');
 
   const years = useMemo(() => {
@@ -18,7 +18,7 @@ export default function Reports() {
   const months = useMemo(() => {
     const keys = [...donations, ...expenses]
       .map(x => monthKey(x.date))
-      .filter(k => k && k.startsWith(year));
+      .filter(k => k && (!year || k.startsWith(year)));
     return [...new Set(keys)].sort().reverse();
   }, [donations, expenses, year]);
 
@@ -290,9 +290,9 @@ export default function Reports() {
           <div className="subtitle">ניתוח ודוחות כספיים</div>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <select className="form-control" value={year} onChange={e => setYear(e.target.value)} style={{ maxWidth: 100 }}>
-            {years.map(y => <option key={y}>{y}</option>)}
-            <option value={new Date().getFullYear().toString()}>{new Date().getFullYear()}</option>
+          <select className="form-control" value={year} onChange={e => { setYear(e.target.value); setMonth(''); }} style={{ maxWidth: 120 }}>
+            <option value="">כל השנים</option>
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
           <select className="form-control" value={month} onChange={e => setMonth(e.target.value)} style={{ maxWidth: 160 }}>
             <option value="">כל השנה</option>
@@ -300,7 +300,11 @@ export default function Reports() {
           </select>
           <button className="btn btn-outline" onClick={sendWhatsAppReport}>📱 שלח וואטסאפ לרו"ח</button>
           <button className="btn btn-gold" onClick={printAccountantReport}>🖨️ הדפס לרו"ח</button>
-          <button className="btn btn-primary" onClick={printAnnualReport} title={`דוח שנתי מלא לניהול תקין – ${year}`}>📋 דוח שנתי {year}</button>
+          <button
+            className="btn btn-primary"
+            onClick={() => { if (!year) return alert('בחר שנה ספציפית לדוח שנתי'); printAnnualReport(); }}
+            title={year ? `דוח שנתי מלא לניהול תקין – ${year}` : 'בחר שנה ספציפית'}
+          >📋 דוח שנתי {year || '—'}</button>
         </div>
       </div>
 
@@ -313,7 +317,7 @@ export default function Reports() {
 
         {tab === 'monthly' && (
           <div className="card">
-            <div className="card-header"><h2>סיכום חודשי – {year}</h2></div>
+            <div className="card-header"><h2>סיכום חודשי – {year || 'כל השנים'}</h2></div>
             <div className="table-wrapper">
               <table>
                 <thead>
@@ -356,7 +360,7 @@ export default function Reports() {
 
         {tab === 'donors' && (
           <div className="card">
-            <div className="card-header"><h2>תורמים – {year}</h2></div>
+            <div className="card-header"><h2>תורמים – {year || 'כל השנים'}</h2></div>
             <div className="table-wrapper">
               <table>
                 <thead>
@@ -378,7 +382,7 @@ export default function Reports() {
 
         {tab === 'categories' && (
           <div className="card">
-            <div className="card-header"><h2>קטגוריות הוצאה – {year}</h2></div>
+            <div className="card-header"><h2>קטגוריות הוצאה – {year || 'כל השנים'}</h2></div>
             <div className="table-wrapper">
               <table>
                 <thead>
