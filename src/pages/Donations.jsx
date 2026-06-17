@@ -71,7 +71,22 @@ const RECEIPT_STYLES = `
   .copy-btn:hover { background: #b8973a; }
   .thankyou { text-align: center; padding: 14px 24px 6px; font-size: 13px; color: #888; line-height: 1.7; }
   .footer { text-align: center; padding: 10px; font-size: 11px; color: #bbb; border-top: 3px solid #1a2744; }
-  @media print { .copy-btn { display: none; } .receipt { margin: 0 auto; page-break-after: always; } .receipt:last-child { page-break-after: avoid; } }
+  @media print {
+    .copy-btn { display: none; }
+    .receipt {
+      margin: 0 auto;
+      page-break-after: always;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      max-width: 100%;
+    }
+    .receipt:last-child { page-break-after: avoid; }
+    body { margin: 0; padding: 0; }
+    .logo-block img { width: 60px; height: 60px; }
+    .org { font-size: 22px; }
+    .body { padding: 12px 16px; }
+    td { padding: 7px 6px; font-size: 13px; }
+  }
 `;
 
 function receiptHTML(d) {
