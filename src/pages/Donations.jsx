@@ -118,7 +118,8 @@ function printReceipt(d) {
   win.document.close();
 }
 
-function DonorReceiptsModal({ donations, onClose }) {
+function DonorReceiptsModal({ donations, onClose, onRenumber, renumbering }) {
+  const noNum = donations.filter(d => !d.receiptNumber).length;
   const grouped = {};
   donations.forEach(d => {
     const name = d.donorName || 'ללא שם';
@@ -134,31 +135,53 @@ function DonorReceiptsModal({ donations, onClose }) {
           <h2>📄 ייצוא PDF לפי תורם</h2>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
-        <div className="modal-body" style={{ maxHeight: 460, overflowY: 'auto', padding: '0 24px' }}>
-          <div style={{ fontSize: '0.82rem', color: 'var(--gray-600)', padding: '12px 0 8px' }}>
-            {donors.length} תורמים · לחץ 🖨️ PDF להדפסה/שמירה כ-PDF של כל קבלות התורם
+        <div className="modal-body" style={{ padding: '0 24px' }}>
+          {/* Renumber banner */}
+          <div style={{ background: noNum > 0 ? '#fff8e1' : '#f0faf4', border: `1px solid ${noNum > 0 ? '#f0c040' : '#b8e0c8'}`, borderRadius: 8, padding: '10px 14px', margin: '14px 0 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+            <div style={{ fontSize: '0.83rem' }}>
+              {noNum > 0
+                ? <><strong style={{ color: '#b45309' }}>{noNum} תרומות ללא מספר קבלה</strong> — מספר תחילה לפי תאריך</>
+                : <span style={{ color: '#2a6b4a' }}>✓ כל התרומות ממוספרות</span>}
+            </div>
+            <button
+              className="btn btn-sm"
+              style={{ background: '#1a2744', color: 'white', whiteSpace: 'nowrap', opacity: renumbering ? 0.6 : 1 }}
+              onClick={onRenumber}
+              disabled={renumbering}
+            >
+              {renumbering ? 'ממספר...' : '🔢 מספר לפי תאריך'}
+            </button>
           </div>
-          {donors.map(([name, dons]) => {
-            const total = dons.reduce((s, d) => s + parseFloat(d.amountILS || d.amount || 0), 0);
-            const sorted = [...dons].sort((a, b) => (a.date || '') > (b.date || '') ? 1 : -1);
-            return (
-              <div key={name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 0', borderBottom: '1px solid var(--gray-200)' }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.97rem' }}>{name}</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--gray-600)', marginTop: 2 }}>
-                    {dons.length} {dons.length === 1 ? 'תרומה' : 'תרומות'} · סה"כ {formatILS(total)}
+
+          {/* Donor list */}
+          <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+            <div style={{ fontSize: '0.82rem', color: 'var(--gray-600)', paddingBottom: 8 }}>
+              {donors.length} תורמים · לחץ 🖨️ PDF לשמירה כ-PDF
+            </div>
+            {donors.map(([name, dons]) => {
+              const total = dons.reduce((s, d) => s + parseFloat(d.amountILS || d.amount || 0), 0);
+              const sorted = [...dons].sort((a, b) => (a.date || '') > (b.date || '') ? 1 : -1);
+              const nums = sorted.filter(d => d.receiptNumber).map(d => formatReceiptNum(d.receiptNumber));
+              return (
+                <div key={name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--gray-200)', gap: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.97rem' }}>{name}</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--gray-600)', marginTop: 2 }}>
+                      {dons.length} תרומות · {formatILS(total)}
+                      {nums.length > 0 && <span style={{ color: 'var(--navy)', marginRight: 6 }}>· קבלות: {nums[0]}{nums.length > 1 ? `–${nums[nums.length-1]}` : ''}</span>}
+                    </div>
                   </div>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+                    onClick={() => printAllReceipts(sorted)}
+                  >
+                    🖨️ PDF
+                  </button>
                 </div>
-                <button
-                  className="btn btn-outline btn-sm"
-                  style={{ whiteSpace: 'nowrap' }}
-                  onClick={() => printAllReceipts(sorted)}
-                >
-                  🖨️ PDF
-                </button>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
         <div className="modal-footer">
           <button className="btn btn-outline" onClick={onClose}>סגור</button>
@@ -277,6 +300,7 @@ export default function Donations() {
   const [acQuery, setAcQuery] = useState('');
   const [receiptDonation, setReceiptDonation] = useState(null);
   const [donorReceiptsOpen, setDonorReceiptsOpen] = useState(false);
+  const [renumbering, setRenumbering] = useState(false);
   const [expandNote, setExpandNote] = useState(null);
   const acRef = useRef(null);
 
@@ -332,6 +356,18 @@ export default function Donations() {
   };
 
   const del = async (id) => { if (window.confirm('למחוק תרומה זו?')) await remove(id); };
+
+  const renumberByDate = async () => {
+    if (!window.confirm(`ממספר ${donations.length} תרומות לפי תאריך (יחליף מספרים קיימים). להמשיך?`)) return;
+    setRenumbering(true);
+    const byDate = [...donations].sort((a, b) => (a.date || '') > (b.date || '') ? 1 : -1);
+    for (let i = 0; i < byDate.length; i++) {
+      await update(byDate[i].id, { ...byDate[i], receiptNumber: i + 1 });
+    }
+    localStorage.setItem(SEQ_KEY, String(byDate.length));
+    setRenumbering(false);
+    alert(`✓ מוספרו ${byDate.length} קבלות לפי תאריך`);
+  };
 
   const years = [...new Set(donations.map(d => (d.date || '').slice(0, 4)).filter(Boolean))].sort().reverse();
   const allMonths = [...new Set(donations.map(d => monthKey(d.date)).filter(Boolean))].sort().reverse();
@@ -593,8 +629,10 @@ export default function Donations() {
       {/* Donor receipts export modal */}
       {donorReceiptsOpen && (
         <DonorReceiptsModal
-          donations={sorted}
+          donations={donations}
           onClose={() => setDonorReceiptsOpen(false)}
+          onRenumber={renumberByDate}
+          renumbering={renumbering}
         />
       )}
     </>
