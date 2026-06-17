@@ -1,63 +1,82 @@
 import { useState, useEffect, useCallback } from 'react';
+import { db } from '../firebase/config';
+import {
+  ref, push, set, remove, onValue, get,
+  update as fbUpdate
+} from 'firebase/database';
 
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
-const KEY = (name) => `halichot_olam_${name}`;
+const FB_ROOT = 'halichot-olam';
+const LS_PREFIX = 'halichot_olam_';
 
-function load(name) {
-  try { return JSON.parse(localStorage.getItem(KEY(name)) || '[]'); }
-  catch { return []; }
-}
+// One-time migration: push localStorage items to Firebase then clear
+async function migrateIfNeeded(collName) {
+  const lsKey = LS_PREFIX + collName;
+  const raw = localStorage.getItem(lsKey);
+  if (!raw) return;
+  try {
+    const items = JSON.parse(raw);
+    if (!Array.isArray(items) || items.length === 0) {
+      localStorage.removeItem(lsKey);
+      return;
+    }
+    // Don't overwrite if Firebase already has data
+    const snap = await get(ref(db, `${FB_ROOT}/${collName}`));
+    if (snap.exists()) { localStorage.removeItem(lsKey); return; }
 
-function save(name, data) {
-  localStorage.setItem(KEY(name), JSON.stringify(data));
-  window.dispatchEvent(new CustomEvent('ls-update', { detail: name }));
-}
-
-function sortData(arr, order) {
-  return [...arr].sort((a, b) => {
-    const av = a[order] || '', bv = b[order] || '';
-    return bv.localeCompare(av);
-  });
+    const updates = {};
+    items.forEach(item => {
+      const id = item.id || (Date.now().toString(36) + Math.random().toString(36).slice(2));
+      updates[`${FB_ROOT}/${collName}/${id}`] = { ...item, id };
+    });
+    await fbUpdate(ref(db), updates);
+    localStorage.removeItem(lsKey);
+    console.log(`[migrate] ${items.length} ${collName} → Firebase`);
+  } catch (e) {
+    console.error('[migrate] error:', e);
+  }
 }
 
 export function useCollection(collName, order = 'createdAt') {
-  const [data, setData] = useState(() => sortData(load(collName), order));
-  const [loading, setLoading] = useState(false);
-
-  const refresh = useCallback(() => {
-    setData(sortData(load(collName), order));
-  }, [collName, order]);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const handler = (e) => { if (e.detail === collName) refresh(); };
-    window.addEventListener('ls-update', handler);
-    const storageHandler = (e) => { if (e.key === KEY(collName)) refresh(); };
-    window.addEventListener('storage', storageHandler);
-    return () => {
-      window.removeEventListener('ls-update', handler);
-      window.removeEventListener('storage', storageHandler);
-    };
-  }, [collName, refresh]);
+    migrateIfNeeded(collName);
 
-  const add = useCallback((item) => {
-    const all = load(collName);
-    const newItem = { ...item, id: uid(), createdAt: new Date().toISOString() };
-    save(collName, [...all, newItem]);
-    return Promise.resolve(newItem);
+    const colRef = ref(db, `${FB_ROOT}/${collName}`);
+    const unsub = onValue(colRef, (snap) => {
+      const val = snap.val();
+      const items = val
+        ? Object.entries(val).map(([id, item]) => ({ ...item, id }))
+        : [];
+      items.sort((a, b) => {
+        const av = a[order] || '';
+        const bv = b[order] || '';
+        return bv > av ? 1 : bv < av ? -1 : 0;
+      });
+      setData(items);
+      setLoading(false);
+    });
+    return () => unsub();
+  }, [collName, order]);
+
+  const add = useCallback(async (item) => {
+    const colRef = ref(db, `${FB_ROOT}/${collName}`);
+    const newRef = push(colRef);
+    const newItem = { ...item, id: newRef.key, createdAt: new Date().toISOString() };
+    await set(newRef, newItem);
+    return newItem;
   }, [collName]);
 
-  const update = useCallback((id, item) => {
-    const all = load(collName).map(x => x.id === id ? { ...x, ...item } : x);
-    save(collName, all);
-    return Promise.resolve();
+  const update = useCallback(async (id, item) => {
+    await set(ref(db, `${FB_ROOT}/${collName}/${id}`), { ...item, id });
   }, [collName]);
 
-  const remove = useCallback((id) => {
-    save(collName, load(collName).filter(x => x.id !== id));
-    return Promise.resolve();
+  const remove_ = useCallback(async (id) => {
+    await remove(ref(db, `${FB_ROOT}/${collName}/${id}`));
   }, [collName]);
 
-  return { data, loading, add, update, remove };
+  return { data, loading, add, update, remove: remove_ };
 }
 
 export function useDonations() { return useCollection('donations', 'date'); }
