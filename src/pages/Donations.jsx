@@ -43,6 +43,7 @@ const RECEIPT_STYLES = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Heebo', sans-serif; direction: rtl; color: #1a2744; background: #fff; }
   .receipt { max-width: 480px; margin: 40px auto; border: 2px solid #b8973a; border-radius: 12px; overflow: hidden; }
+  .bsd { text-align: left; font-size: 13px; font-weight: 600; color: #1a2744; padding: 6px 14px 0; font-family: 'Frank Ruhl Libre', serif; }
   .header { background: #1a2744; color: white; padding: 20px 24px; text-align: center; }
   .header-logo { width: 60px; height: 60px; object-fit: contain; border-radius: 50%; background: #fff; padding: 6px; margin-bottom: 10px; }
   .org { font-size: 20px; font-weight: 700; }
@@ -70,6 +71,7 @@ function receiptHTML(d) {
     : '';
   return `
   <div class="receipt">
+    <div class="bsd">בס"ד</div>
     <div class="header">
       <img class="header-logo" src="${LOGO_URL}" onerror="this.style.display='none'" alt="לוגו" />
       <div class="org">תפארת מישאל</div>
@@ -82,7 +84,7 @@ function receiptHTML(d) {
       <table>
         <tr><td>שם התורם</td><td>${d.donorName}</td></tr>
         <tr class="amount-row"><td>סכום התרומה</td><td>₪${amt}</td></tr>
-        <tr><td>תאריך</td><td>${d.date}</td></tr>
+        <tr><td>תאריך תרומה</td><td>${d.date}</td></tr>
         <tr><td>אמצעי תשלום</td><td>${d.paymentMethod || '—'}</td></tr>
         ${ref}${bankRef}
         ${d.notes ? `<tr><td>הערות</td><td>${d.notes}</td></tr>` : ''}
@@ -90,7 +92,7 @@ function receiptHTML(d) {
       </table>
     </div>
     <div class="thankyou">יהי רצון שתזכו לראות פרי ברכה מתרומתכם הנדיבה.</div>
-    <div class="footer">הופק: ${new Date().toLocaleDateString('he-IL')} · עמותת תפארת מישאל – הליכות עולם · מס׳ 580676807</div>
+    <div class="footer">הופק: ${d.date} · עמותת תפארת מישאל – הליכות עולם · מס׳ 580676807</div>
   </div>`;
 }
 
