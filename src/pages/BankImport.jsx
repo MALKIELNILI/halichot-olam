@@ -93,8 +93,10 @@ export default function BankImport() {
 
   const { data: donors,    add: addDonor    } = useDonors();
   const { data: scholars                     } = useScholars();
-  const { data: donations,      add: addDonation } = useDonations();
-  const { data: savedExpenses, add: addExpense  } = useExpenses();
+  const { data: donations,      add: addDonation, remove: removeDonation } = useDonations();
+  const { data: savedExpenses, add: addExpense, remove: removeExpense    } = useExpenses();
+  const [undoYear, setUndoYear] = useState(new Date().getFullYear().toString());
+  const [undoing, setUndoing]   = useState(false);
 
   const donorNames   = donors.map(d => d.name);
   const scholarNames = scholars.map(s => s.name);
@@ -318,6 +320,45 @@ export default function BankImport() {
             background: msg.includes('שגיאה') ? 'var(--red-light)' : 'var(--green-light)',
             color:      msg.includes('שגיאה') ? 'var(--red)' : 'var(--green)' }}>
             {msg}
+          </div>
+        )}
+
+        {!txs && (
+          <div className="card" style={{ maxWidth: 520, marginBottom: 20, borderColor: 'var(--red)' }}>
+            <div className="card-header"><h2 style={{ color: 'var(--red)' }}>↩️ בטל ייבוא — מחק לפי שנה</h2></div>
+            <div className="card-body">
+              <p style={{ color: 'var(--gray-600)', fontSize: '0.88rem', marginBottom: 16, lineHeight: 1.8 }}>
+                מחק את כל התרומות וההוצאות שיובאו לשנה מסוימת. פעולה זו בלתי הפיכה.
+              </p>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <select className="form-control" style={{ maxWidth: 120 }} value={undoYear} onChange={e => setUndoYear(e.target.value)}>
+                  {[...new Set([...donations, ...savedExpenses].map(x => x.date?.slice(0,4)).filter(Boolean))].sort().reverse().map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                <div style={{ fontSize: '0.85rem', color: 'var(--gray-600)' }}>
+                  {donations.filter(d => d.date?.startsWith(undoYear)).length} תרומות +{' '}
+                  {savedExpenses.filter(e => e.date?.startsWith(undoYear)).length} הוצאות
+                </div>
+                <button
+                  className="btn btn-danger"
+                  disabled={undoing}
+                  onClick={async () => {
+                    const dons = donations.filter(d => d.date?.startsWith(undoYear));
+                    const exps = savedExpenses.filter(e => e.date?.startsWith(undoYear));
+                    if (!window.confirm(`למחוק ${dons.length} תרומות ו-${exps.length} הוצאות משנת ${undoYear}? פעולה בלתי הפיכה!`)) return;
+                    setUndoing(true);
+                    for (const d of dons) await removeDonation(d.id);
+                    for (const e of exps) await removeExpense(e.id);
+                    setUndoing(false);
+                    setMsg(`✓ נמחקו ${dons.length} תרומות ו-${exps.length} הוצאות משנת ${undoYear}`);
+                  }}
+                >
+                  {undoing ? 'מוחק...' : `מחק ${undoYear}`}
+                </button>
+              </div>
+              {msg && <div style={{ marginTop: 12, color: msg.includes('✓') ? 'var(--green)' : 'var(--red)', fontWeight: 700, fontSize: '0.88rem' }}>{msg}</div>}
+            </div>
           </div>
         )}
 
