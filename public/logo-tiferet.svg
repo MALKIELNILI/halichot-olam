@@ -1,0 +1,152 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#223466"/>
+      <stop offset="100%" stop-color="#0f1d3a"/>
+    </radialGradient>
+    <radialGradient id="goldGrad" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#f0d060"/>
+      <stop offset="50%" stop-color="#c9922a"/>
+      <stop offset="100%" stop-color="#9a6a10"/>
+    </radialGradient>
+    <radialGradient id="goldGrad2" cx="50%" cy="20%" r="80%">
+      <stop offset="0%" stop-color="#fde97a"/>
+      <stop offset="60%" stop-color="#b8973a"/>
+      <stop offset="100%" stop-color="#7a5c10"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Outer gold ring -->
+  <circle cx="250" cy="250" r="244" fill="url(#goldGrad)" />
+  <!-- Thin outer border -->
+  <circle cx="250" cy="250" r="244" fill="none" stroke="#fde97a" stroke-width="1.5"/>
+
+  <!-- Main background -->
+  <circle cx="250" cy="250" r="234" fill="url(#bgGrad)"/>
+
+  <!-- Inner gold ring -->
+  <circle cx="250" cy="250" r="215" fill="none" stroke="url(#goldGrad2)" stroke-width="3"/>
+  <circle cx="250" cy="250" r="208" fill="none" stroke="#b8973a" stroke-width="1"/>
+
+  <!-- Decorative dots on outer ring -->
+  <g fill="url(#goldGrad2)" filter="url(#glow)">
+    <circle cx="250" cy="37" r="5"/>
+    <circle cx="250" cy="463" r="5"/>
+    <circle cx="37"  cy="250" r="5"/>
+    <circle cx="463" cy="250" r="5"/>
+    <circle cx="107" cy="80"  r="3.5"/>
+    <circle cx="393" cy="80"  r="3.5"/>
+    <circle cx="107" cy="420" r="3.5"/>
+    <circle cx="393" cy="420" r="3.5"/>
+  </g>
+
+  <!-- ═══ CROWN ═══ -->
+  <g transform="translate(250,96)" filter="url(#shadow)">
+    <!-- Crown base band -->
+    <rect x="-68" y="20" width="136" height="22" rx="5" fill="url(#goldGrad)"/>
+    <rect x="-68" y="20" width="136" height="22" rx="5" fill="none" stroke="#fde97a" stroke-width="0.8"/>
+    <!-- Crown points -->
+    <polygon points="-68,22 -54,-10 -38,14" fill="url(#goldGrad)"/>
+    <polygon points="0,22 0,-22 0,22" fill="none"/>
+    <polygon points="-68,22 -54,-10 -38,14 -68,22" fill="url(#goldGrad)"/>
+    <polygon points="68,22 54,-10 38,14 68,22" fill="url(#goldGrad)"/>
+    <polygon points="-22,22 0,-26 22,22" fill="url(#goldGrad)"/>
+    <!-- Crown gems -->
+    <circle cx="0"   cy="-16" r="6"  fill="#c0392b"/>
+    <circle cx="-54" cy="-3"  r="4"  fill="#2980b9"/>
+    <circle cx="54"  cy="-3"  r="4"  fill="#2980b9"/>
+    <!-- Gem highlights -->
+    <circle cx="-1"  cy="-18" r="2"  fill="#ff9090" opacity="0.7"/>
+    <!-- Band gems -->
+    <circle cx="-40" cy="31"  r="3.5" fill="#f39c12"/>
+    <circle cx="0"   cy="31"  r="3.5" fill="#c0392b"/>
+    <circle cx="40"  cy="31"  r="3.5" fill="#f39c12"/>
+  </g>
+
+  <!-- ═══ DECORATIVE DIVIDER (under crown) ═══ -->
+  <g transform="translate(250,155)" fill="url(#goldGrad2)">
+    <rect x="-90" y="0" width="180" height="1.5" rx="1"/>
+    <polygon points="0,-6 5,0 0,6 -5,0" transform="translate(0,0)"/>
+    <polygon points="0,-4 3,0 0,4 -3,0" transform="translate(-20,0)"/>
+    <polygon points="0,-4 3,0 0,4 -3,0" transform="translate(20,0)"/>
+  </g>
+
+  <!-- ═══ MAIN TEXTS ═══ -->
+  <!-- תפארת -->
+  <text x="250" y="232"
+        font-family="'Frank Ruhl Libre', 'David', 'Times New Roman', serif"
+        font-size="76" font-weight="700"
+        fill="url(#goldGrad2)"
+        text-anchor="middle"
+        filter="url(#shadow)">תפארת</text>
+
+  <!-- מישאל -->
+  <text x="250" y="308"
+        font-family="'Frank Ruhl Libre', 'David', 'Times New Roman', serif"
+        font-size="68" font-weight="700"
+        fill="url(#goldGrad2)"
+        text-anchor="middle"
+        filter="url(#shadow)">מישאל</text>
+
+  <!-- ═══ DIVIDER LINE ═══ -->
+  <g transform="translate(250,325)" fill="url(#goldGrad2)">
+    <rect x="-80" y="0" width="160" height="1.5" rx="1"/>
+    <polygon points="0,-5 4,0 0,5 -4,0"/>
+  </g>
+
+  <!-- ═══ MENORAH ═══ -->
+  <g transform="translate(250,360)" stroke="url(#goldGrad2)" fill="none" stroke-linecap="round" filter="url(#glow)">
+    <!-- Shaft -->
+    <line x1="0" y1="-30" x2="0" y2="22" stroke-width="5"/>
+    <!-- Base -->
+    <path d="M-18,22 Q0,28 18,22" stroke-width="4"/>
+    <line x1="-18" y1="22" x2="18" y2="22" stroke-width="4"/>
+    <!-- Left branches -->
+    <path d="M0,5 Q-20,5 -20,-14" stroke-width="3.5"/>
+    <path d="M0,10 Q-36,10 -36,-14" stroke-width="3"/>
+    <path d="M0,15 Q-52,15 -52,-14" stroke-width="2.5"/>
+    <!-- Right branches -->
+    <path d="M0,5 Q20,5 20,-14" stroke-width="3.5"/>
+    <path d="M0,10 Q36,10 36,-14" stroke-width="3"/>
+    <path d="M0,15 Q52,15 52,-14" stroke-width="2.5"/>
+    <!-- Flames -->
+    <g fill="url(#goldGrad2)" stroke="none">
+      <ellipse cx="0"   cy="-33" rx="3"   ry="5"/>
+      <ellipse cx="-20" cy="-17" rx="2.5" ry="4"/>
+      <ellipse cx="20"  cy="-17" rx="2.5" ry="4"/>
+      <ellipse cx="-36" cy="-17" rx="2.5" ry="4"/>
+      <ellipse cx="36"  cy="-17" rx="2.5" ry="4"/>
+      <ellipse cx="-52" cy="-17" rx="2"   ry="3.5"/>
+      <ellipse cx="52"  cy="-17" rx="2"   ry="3.5"/>
+    </g>
+  </g>
+
+  <!-- ═══ SUBTITLE ═══ -->
+  <text x="250" y="442"
+        font-family="'Frank Ruhl Libre', 'David', 'Times New Roman', serif"
+        font-size="26" font-weight="400"
+        fill="#d4af6b"
+        text-anchor="middle"
+        letter-spacing="3">הליכות עולם</text>
+
+  <!-- ═══ STAR ACCENTS ═══ -->
+  <g fill="url(#goldGrad2)" opacity="0.7" font-size="16" text-anchor="middle" font-family="serif">
+    <text x="132" y="265">✦</text>
+    <text x="368" y="265">✦</text>
+    <text x="142" y="340">·</text>
+    <text x="358" y="340">·</text>
+  </g>
+
+  <!-- Bottom arc text -->
+  <path id="bottomArc" d="M 90,340 A 175,175 0 0,0 410,340" fill="none"/>
+  <text font-family="'Frank Ruhl Libre', 'David', serif" font-size="18" fill="#9a7828" text-anchor="middle">
+    <textPath href="#bottomArc" startOffset="50%">• ע"ר 580676807 •</textPath>
+  </text>
+</svg>

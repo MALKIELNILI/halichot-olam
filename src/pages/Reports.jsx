@@ -230,7 +230,7 @@ export default function Reports() {
     win.document.write(`<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8"><title>דוח שנתי ${year} – תפארת מישאל</title><style>${STYLES}</style></head><body>
 
     <div class="cover">
-      <img class="cover-logo" src="https://malkielnili.github.io/halichot-olam/logo.jpg" onerror="this.style.display='none'" alt="לוגו" />
+      <img class="cover-logo" src="https://malkielnili.github.io/halichot-olam/logo-tiferet.svg" onerror="this.style.display='none'" alt="לוגו" />
       <div class="cover-org">תפארת מישאל</div>
       <div class="cover-reg">עמותה מס׳ 580676807</div>
       <div class="cover-sub">הליכות עולם · צונץ 11, תל אביב</div>

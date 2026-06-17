@@ -36,7 +36,7 @@ function sendWhatsApp(d, donors) {
   window.open(url, '_blank');
 }
 
-const LOGO_URL = 'https://malkielnili.github.io/halichot-olam/logo.jpg';
+const LOGO_URL = 'https://malkielnili.github.io/halichot-olam/logo-tiferet.svg';
 
 const RECEIPT_STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700&display=swap');
