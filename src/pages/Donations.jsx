@@ -188,9 +188,11 @@ function DonorReceiptsModal({ donations, onClose, onRenumber, renumbering }) {
           <button
             className="btn btn-primary"
             onClick={() => {
-              donors.forEach(([, dons], i) => {
-                setTimeout(() => printAllReceipts([...dons].sort((a,b) => (a.date||'')>(b.date||'')?1:-1)), i * 600);
-              });
+              const allDonors = donors.map(([name, dons]) => ({
+                name,
+                dons: [...dons].sort((a,b) => (a.date||'')>(b.date||'')?1:-1)
+              }));
+              printDonorsSequential(allDonors);
             }}
           >
             🖨️ הדפס הכל — תורם אחר תורם
@@ -199,6 +201,58 @@ function DonorReceiptsModal({ donations, onClose, onRenumber, renumbering }) {
       </div>
     </div>
   );
+}
+
+function printDonorsSequential(allDonors) {
+  if (!allDonors.length) return;
+  let idx = 0;
+
+  function openCurrent(win) {
+    const { name, dons } = allDonors[idx];
+    const isLast = idx === allDonors.length - 1;
+    const navBar = `
+      <div style="position:fixed;bottom:0;left:0;right:0;background:#1a2744;color:#f0d060;
+        display:flex;align-items:center;justify-content:space-between;padding:10px 20px;
+        font-family:Heebo,sans-serif;z-index:9999;direction:rtl;font-size:14px;">
+        <span style="font-weight:700;">${name} (${idx+1}/${allDonors.length})</span>
+        <div style="display:flex;gap:10px;">
+          <button onclick="window.print()"
+            style="background:#b8973a;color:#fff;border:none;border-radius:6px;padding:7px 16px;cursor:pointer;font-weight:700;font-size:13px;">
+            🖨️ שמור PDF
+          </button>
+          ${!isLast ? `<button id="next-btn"
+            style="background:#22c55e;color:#fff;border:none;border-radius:6px;padding:7px 16px;cursor:pointer;font-weight:700;font-size:13px;">
+            הבא ← ${allDonors[idx+1].name}
+          </button>` : `<span style="color:#6db86d;font-weight:700;">✓ אחרון</span>`}
+        </div>
+      </div>
+      <div style="height:52px;"></div>`;
+
+    win.document.open();
+    win.document.write(`<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8">
+      <title>קבלות — ${name}</title><style>${RECEIPT_STYLES}
+      body { padding-bottom: 60px; }
+      @media print { #nav-bar { display:none!important; } body { padding-bottom:0; } }
+      </style></head><body>
+      <div id="nav-bar">${navBar}</div>
+      ${dons.map(receiptHTML).join('')}
+      <script>window.onload=()=>{
+        var nb=document.getElementById('next-btn');
+        if(nb) nb.onclick=function(){window.__goNext&&window.__goNext();};
+      };<\/script>
+      </body></html>`);
+    win.document.close();
+
+    if (!isLast) {
+      win.__goNext = () => {
+        idx++;
+        openCurrent(win);
+      };
+    }
+  }
+
+  const win = window.open('', '_blank');
+  openCurrent(win);
 }
 
 function printAllReceipts(donations) {
