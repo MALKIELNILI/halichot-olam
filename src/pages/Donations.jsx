@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useDonations, useDonors } from '../hooks/useFirestore';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useDonations, useDonors, useAccountantPhone } from '../hooks/useFirestore';
 import { formatILS, formatDate, todayISO, CURRENCIES, monthKey, heMonthYear } from '../utils/helpers';
 
 const EMPTY = {
@@ -33,7 +33,13 @@ function sendWhatsApp(d, donors) {
   const phone = donor?.phone?.replace(/\D/g, '');
   const text = encodeURIComponent(receiptText(d));
   const url = phone ? `https://wa.me/972${phone.replace(/^0/, '')}?text=${text}` : `https://wa.me/?text=${text}`;
-  window.open(url, '_blank');
+  openLink(url);
+}
+
+function openLink(url) {
+  const a = document.createElement('a');
+  a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
 const LOGO_URL = 'https://malkielnili.github.io/halichot-olam/logo.jpg';
@@ -371,9 +377,131 @@ function ReceiptModal({ donation, donors, onClose }) {
   );
 }
 
+function AccountantModal({ donations, accountantPhone, onClose }) {
+  const [selectedMonth, setSelectedMonth] = React.useState(null);
+
+  const months = useMemo(() => {
+    const map = {};
+    donations.forEach(d => {
+      const m = monthKey(d.date);
+      if (!m) return;
+      if (!map[m]) map[m] = { count: 0, total: 0, dons: [] };
+      map[m].count++;
+      map[m].total += parseFloat(d.amountILS || 0);
+      map[m].dons.push(d);
+    });
+    return Object.entries(map).sort((a, b) => b[0] > a[0] ? 1 : -1);
+  }, [donations]);
+
+  const monthDonors = useMemo(() => {
+    if (!selectedMonth) return [];
+    const mDons = months.find(([m]) => m === selectedMonth)?.[1].dons || [];
+    const grouped = {};
+    mDons.forEach(d => {
+      const name = d.donorName || 'ללא שם';
+      if (!grouped[name]) grouped[name] = { total: 0, dons: [] };
+      grouped[name].total += parseFloat(d.amountILS || 0);
+      grouped[name].dons.push(d);
+    });
+    return Object.entries(grouped).sort((a, b) => a[0].localeCompare(b[0], 'he'));
+  }, [selectedMonth, months]);
+
+  const printMonth = () => {
+    const mDons = months.find(([m]) => m === selectedMonth)?.[1].dons || [];
+    const sorted = [...mDons].sort((a, b) => (a.donorName || '') > (b.donorName || '') ? 1 : -1);
+    printAllReceipts(sorted);
+  };
+
+  const sendToAccountant = () => {
+    const phone = accountantPhone?.replace(/\D/g, '').replace(/^0/, '');
+    if (!phone) return alert('הזן מספר רו"ח בהגדרות תחילה');
+    const total = monthDonors.reduce((s, [, { total: t }]) => s + t, 0);
+    const lines = monthDonors.map(([name, { total: t, dons }]) => {
+      const nums = dons.filter(d => d.receiptNumber).map(d => formatReceiptNum(d.receiptNumber)).join(', ');
+      return `• ${name}: ₪${t.toLocaleString('he-IL')}${nums ? ` (קבלה ${nums})` : ''}`;
+    }).join('\n');
+    const msg = `שלום,\nקבלות תפארת מישאל – הליכות עולם\nחודש: ${heMonthYear(selectedMonth)}\n\n${lines}\n\nסה"כ: ₪${total.toLocaleString('he-IL')}\n\nבברכה`;
+    openLink(`https://wa.me/972${phone}?text=${encodeURIComponent(msg)}`);
+  };
+
+  const selectedData = selectedMonth ? months.find(([m]) => m === selectedMonth)?.[1] : null;
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth: 520 }}>
+        <div className="modal-header">
+          <h2>📅 קבלות לרו"ח</h2>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        <div className="modal-body" style={{ padding: '0 24px' }}>
+          {!selectedMonth ? (
+            <div>
+              <div style={{ fontSize: '0.83rem', color: 'var(--gray-600)', padding: '14px 0 10px' }}>בחר חודש לייצוא:</div>
+              <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+                {months.map(([m, { count, total }]) => (
+                  <div key={m} onClick={() => setSelectedMonth(m)} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '12px 4px', borderBottom: '1px solid var(--gray-100)',
+                    cursor: 'pointer', borderRadius: 6, transition: 'background 0.1s'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--blue-light)'}
+                  onMouseLeave={e => e.currentTarget.style.background = ''}
+                  >
+                    <span style={{ fontWeight: 700 }}>{heMonthYear(m)}</span>
+                    <span style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>{count} תרומות · {formatILS(total)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 0 10px' }}>
+                <button className="btn btn-sm btn-outline" onClick={() => setSelectedMonth(null)}>← חזרה</button>
+                <span style={{ fontWeight: 700, fontSize: '1rem' }}>{heMonthYear(selectedMonth)}</span>
+                <span style={{ color: 'var(--gray-600)', fontSize: '0.83rem' }}>
+                  {selectedData?.count} תרומות · {formatILS(selectedData?.total)}
+                </span>
+              </div>
+              <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                {monthDonors.map(([name, { total: t, dons }]) => {
+                  const nums = dons.filter(d => d.receiptNumber).map(d => formatReceiptNum(d.receiptNumber));
+                  return (
+                    <div key={name} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 4px', borderBottom: '1px solid var(--gray-100)' }}>
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{name}</div>
+                        {nums.length > 0 && <div style={{ fontSize: '0.78rem', color: 'var(--navy)' }}>קבלות: {nums.join(', ')}</div>}
+                      </div>
+                      <div style={{ color: 'var(--green)', fontWeight: 700 }}>{formatILS(t)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-outline" onClick={onClose}>סגור</button>
+          {selectedMonth && (<>
+            <button className="btn btn-primary" onClick={printMonth}>🖨️ הדפס PDF</button>
+            <button
+              className="btn"
+              style={{ background: '#25d366', color: 'white' }}
+              onClick={sendToAccountant}
+              title={accountantPhone ? `שלח לרו"ח (${accountantPhone})` : 'הזן מספר רו"ח בהגדרות'}
+            >
+              📱 שלח לרו"ח
+            </button>
+          </>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Donations() {
   const { data: donations, loading, add, update, remove } = useDonations();
   const { data: donors } = useDonors();
+  const { phone: accountantPhone } = useAccountantPhone();
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
@@ -385,6 +513,7 @@ export default function Donations() {
   const [acQuery, setAcQuery] = useState('');
   const [receiptDonation, setReceiptDonation] = useState(null);
   const [donorReceiptsOpen, setDonorReceiptsOpen] = useState(false);
+  const [accountantOpen, setAccountantOpen] = useState(false);
   const [renumbering, setRenumbering] = useState(false);
   const [expandNote, setExpandNote] = useState(null);
   const acRef = useRef(null);
@@ -534,6 +663,13 @@ export default function Donations() {
             >
               📄 לפי תורם
             </button>
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={() => setAccountantOpen(true)}
+              title="קבלות לרו&quot;ח לפי חודש"
+            >
+              📅 לרו"ח
+            </button>
           </div>
         </div>
 
@@ -545,11 +681,11 @@ export default function Donations() {
                   <th>קבלה</th>
                   <th>תאריך</th>
                   <th>שם תורם</th>
-                  <th>סכום מקורי</th>
+                  <th className="hide-mobile">סכום מקורי</th>
                   <th>סכום בש"ח</th>
-                  <th>אסמכתא</th>
-                  <th>אמצעי תשלום</th>
-                  <th>הערות</th>
+                  <th className="hide-mobile">אסמכתא</th>
+                  <th className="hide-mobile">אמצעי תשלום</th>
+                  <th className="hide-mobile">הערות</th>
                   <th></th>
                 </tr>
               </thead>
@@ -565,11 +701,11 @@ export default function Donations() {
                     <td style={{ fontWeight: 700, color: 'var(--navy)', whiteSpace: 'nowrap' }}>{d.receiptNumber ? formatReceiptNum(d.receiptNumber) : '—'}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{d.date}</td>
                     <td style={{ fontWeight: 600 }}>{d.donorName}</td>
-                    <td className="amount-positive">{d.amount} {d.currency}</td>
+                    <td className="amount-positive hide-mobile">{d.amount} {d.currency}</td>
                     <td className="amount-positive">{formatILS(d.amountILS)}</td>
-                    <td style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>{d.bankRef || d.reference || '—'}</td>
-                    <td><span className="badge badge-blue">{d.paymentMethod}</span></td>
-                    <td style={{ maxWidth: 160 }}>
+                    <td className="hide-mobile" style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>{d.bankRef || d.reference || '—'}</td>
+                    <td className="hide-mobile"><span className="badge badge-blue">{d.paymentMethod}</span></td>
+                    <td className="hide-mobile" style={{ maxWidth: 160 }}>
                       {d.notes
                         ? expandNote === d.id
                           ? <span style={{ fontSize: '0.8rem', color: 'var(--gray-600)', cursor: 'pointer' }} onClick={() => setExpandNote(null)}>
@@ -718,6 +854,15 @@ export default function Donations() {
           onClose={() => setDonorReceiptsOpen(false)}
           onRenumber={renumberByDate}
           renumbering={renumbering}
+        />
+      )}
+
+      {/* Accountant monthly export modal */}
+      {accountantOpen && (
+        <AccountantModal
+          donations={donations}
+          accountantPhone={accountantPhone}
+          onClose={() => setAccountantOpen(false)}
         />
       )}
     </>

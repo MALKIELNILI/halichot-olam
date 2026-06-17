@@ -1,11 +1,22 @@
 import React, { useRef, useState } from 'react';
-import { useDonors, useOpeningBalance } from '../hooks/useFirestore';
+import { useDonors, useOpeningBalance, useAccountantPhone } from '../hooks/useFirestore';
 
 export default function Settings() {
   const fileRef = useRef();
   const [msg, setMsg] = useState('');
   const { data: donors, add: addDonor } = useDonors();
   const { value: ob, setOpeningBalance } = useOpeningBalance();
+  const { phone: accPhone, setPhone: setAccPhone } = useAccountantPhone();
+  const [accInput, setAccInput] = React.useState('');
+  const [accMsg, setAccMsg] = React.useState('');
+
+  React.useEffect(() => { setAccInput(accPhone || ''); }, [accPhone]);
+
+  const saveAcc = async () => {
+    await setAccPhone(accInput);
+    setAccMsg('נשמר ✓');
+    setTimeout(() => setAccMsg(''), 2000);
+  };
   const [obInput, setObInput] = useState('');
   const [obMsg, setObMsg] = useState('');
 
@@ -98,6 +109,28 @@ export default function Settings() {
                 {msg}
               </div>
             )}
+          </div>
+        </div>
+
+        <div className="card" style={{ maxWidth: 600, marginTop: 20 }}>
+          <div className="card-header"><h2>📱 מספר רו"ח (לשליחת קבלות)</h2></div>
+          <div className="card-body">
+            <p style={{ color: 'var(--gray-600)', fontSize: '0.88rem', marginBottom: 16, lineHeight: 1.7 }}>
+              מספר הטלפון של רואה החשבון לשליחת סיכומי קבלות בוואטסאפ. הזן ללא קידומת בינלאומית (לדוגמה: 0521234567).
+            </p>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <input
+                className="form-control"
+                type="tel"
+                value={accInput}
+                onChange={e => setAccInput(e.target.value)}
+                placeholder="05X-XXXXXXX"
+                style={{ maxWidth: 200 }}
+                dir="ltr"
+              />
+              <button className="btn btn-primary" onClick={saveAcc}>שמור</button>
+              {accMsg && <span style={{ color: 'var(--green)', fontWeight: 700 }}>{accMsg}</span>}
+            </div>
           </div>
         </div>
 

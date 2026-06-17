@@ -84,6 +84,19 @@ export function useDonors()    { return useCollection('donors', 'name'); }
 export function useExpenses()  { return useCollection('expenses', 'date'); }
 export function useScholars()  { return useCollection('scholars', 'name'); }
 
+export function useAccountantPhone() {
+  const [phone, setPhone_] = useState('');
+  useEffect(() => {
+    const r = ref(db, `${FB_ROOT}/meta/accountantPhone`);
+    const unsub = onValue(r, snap => setPhone_(snap.val() || ''));
+    return () => unsub();
+  }, []);
+  const setPhone = useCallback(async (val) => {
+    await set(ref(db, `${FB_ROOT}/meta/accountantPhone`), val || '');
+  }, []);
+  return { phone, setPhone };
+}
+
 export function useOpeningBalance() {
   const [value, setValue] = useState(0);
 
