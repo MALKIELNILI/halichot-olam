@@ -118,6 +118,66 @@ function printReceipt(d) {
   win.document.close();
 }
 
+function DonorReceiptsModal({ donations, onClose }) {
+  const grouped = {};
+  donations.forEach(d => {
+    const name = d.donorName || 'ללא שם';
+    if (!grouped[name]) grouped[name] = [];
+    grouped[name].push(d);
+  });
+  const donors = Object.entries(grouped).sort((a, b) => a[0].localeCompare(b[0], 'he'));
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth: 520 }}>
+        <div className="modal-header">
+          <h2>📄 ייצוא PDF לפי תורם</h2>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        <div className="modal-body" style={{ maxHeight: 460, overflowY: 'auto', padding: '0 24px' }}>
+          <div style={{ fontSize: '0.82rem', color: 'var(--gray-600)', padding: '12px 0 8px' }}>
+            {donors.length} תורמים · לחץ 🖨️ PDF להדפסה/שמירה כ-PDF של כל קבלות התורם
+          </div>
+          {donors.map(([name, dons]) => {
+            const total = dons.reduce((s, d) => s + parseFloat(d.amountILS || d.amount || 0), 0);
+            const sorted = [...dons].sort((a, b) => (a.date || '') > (b.date || '') ? 1 : -1);
+            return (
+              <div key={name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 0', borderBottom: '1px solid var(--gray-200)' }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.97rem' }}>{name}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--gray-600)', marginTop: 2 }}>
+                    {dons.length} {dons.length === 1 ? 'תרומה' : 'תרומות'} · סה"כ {formatILS(total)}
+                  </div>
+                </div>
+                <button
+                  className="btn btn-outline btn-sm"
+                  style={{ whiteSpace: 'nowrap' }}
+                  onClick={() => printAllReceipts(sorted)}
+                >
+                  🖨️ PDF
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-outline" onClick={onClose}>סגור</button>
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              donors.forEach(([, dons], i) => {
+                setTimeout(() => printAllReceipts([...dons].sort((a,b) => (a.date||'')>(b.date||'')?1:-1)), i * 600);
+              });
+            }}
+          >
+            🖨️ הדפס הכל — תורם אחר תורם
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function printAllReceipts(donations) {
   if (!donations.length) return alert('אין תרומות להדפסה');
   const win = window.open('', '_blank');
@@ -216,6 +276,7 @@ export default function Donations() {
   const [acOpen, setAcOpen] = useState(false);
   const [acQuery, setAcQuery] = useState('');
   const [receiptDonation, setReceiptDonation] = useState(null);
+  const [donorReceiptsOpen, setDonorReceiptsOpen] = useState(false);
   const [expandNote, setExpandNote] = useState(null);
   const acRef = useRef(null);
 
@@ -337,14 +398,22 @@ export default function Donations() {
               סה"כ: {formatILS(totalFiltered)}
             </div>
           )}
-          <button
-            className="btn btn-outline btn-sm"
-            style={{ marginRight: 'auto' }}
-            onClick={() => printAllReceipts(sorted)}
-            title={`הדפס ${sorted.length} קבלות`}
-          >
-            🖨️ הדפס הכל ({sorted.length})
-          </button>
+          <div style={{ marginRight: 'auto', display: 'flex', gap: 8 }}>
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={() => printAllReceipts(sorted)}
+              title={`הדפס ${sorted.length} קבלות`}
+            >
+              🖨️ הדפס הכל ({sorted.length})
+            </button>
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={() => setDonorReceiptsOpen(true)}
+              title="ייצוא PDF לפי תורם"
+            >
+              📄 לפי תורם
+            </button>
+          </div>
         </div>
 
         <div className="card">
@@ -518,6 +587,14 @@ export default function Donations() {
           donation={receiptDonation}
           donors={donors}
           onClose={() => setReceiptDonation(null)}
+        />
+      )}
+
+      {/* Donor receipts export modal */}
+      {donorReceiptsOpen && (
+        <DonorReceiptsModal
+          donations={sorted}
+          onClose={() => setDonorReceiptsOpen(false)}
         />
       )}
     </>
