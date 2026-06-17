@@ -119,6 +119,15 @@ function printReceipt(d) {
 }
 
 function DonorReceiptsModal({ donations, onClose, onRenumber, renumbering }) {
+  const [issued, setIssued] = React.useState(getIssuedDonors);
+
+  React.useEffect(() => {
+    const refresh = () => setIssued(getIssuedDonors());
+    window.addEventListener('issued-update', refresh);
+    window.addEventListener('storage', refresh);
+    return () => { window.removeEventListener('issued-update', refresh); window.removeEventListener('storage', refresh); };
+  }, []);
+
   const noNum = donations.filter(d => !d.receiptNumber).length;
   const grouped = {};
   donations.forEach(d => {
@@ -127,6 +136,7 @@ function DonorReceiptsModal({ donations, onClose, onRenumber, renumbering }) {
     grouped[name].push(d);
   });
   const donors = Object.entries(grouped).sort((a, b) => a[0].localeCompare(b[0], 'he'));
+  const pendingDonors = donors.filter(([name]) => !issued.has(name));
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -155,17 +165,22 @@ function DonorReceiptsModal({ donations, onClose, onRenumber, renumbering }) {
 
           {/* Donor list */}
           <div style={{ maxHeight: 360, overflowY: 'auto' }}>
-            <div style={{ fontSize: '0.82rem', color: 'var(--gray-600)', paddingBottom: 8 }}>
-              {donors.length} תורמים · לחץ 🖨️ PDF לשמירה כ-PDF
+            <div style={{ fontSize: '0.82rem', color: 'var(--gray-600)', paddingBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
+              <span>{donors.length} תורמים · <span style={{ color: 'var(--green)', fontWeight: 600 }}>{issued.size} הופקו</span> · <span style={{ color: '#b45309', fontWeight: 600 }}>{pendingDonors.length} ממתינים</span></span>
+              {issued.size > 0 && <button className="btn btn-sm" style={{ fontSize: '0.75rem', padding: '2px 8px' }} onClick={() => { localStorage.removeItem(ISSUED_KEY); setIssued(new Set()); }}>↩️ אפס</button>}
             </div>
             {donors.map(([name, dons]) => {
               const total = dons.reduce((s, d) => s + parseFloat(d.amountILS || d.amount || 0), 0);
               const sorted = [...dons].sort((a, b) => (a.date || '') > (b.date || '') ? 1 : -1);
               const nums = sorted.filter(d => d.receiptNumber).map(d => formatReceiptNum(d.receiptNumber));
+              const isIssued = issued.has(name);
               return (
-                <div key={name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--gray-200)', gap: 8 }}>
+                <div key={name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: '1px solid var(--gray-200)', gap: 8, opacity: isIssued ? 0.5 : 1 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.97rem' }}>{name}</div>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {isIssued && <span style={{ color: 'var(--green)', fontSize: '0.85rem' }}>✓</span>}
+                      {name}
+                    </div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--gray-600)', marginTop: 2 }}>
                       {dons.length} תרומות · {formatILS(total)}
                       {nums.length > 0 && <span style={{ color: 'var(--navy)', marginRight: 6 }}>· קבלות: {nums[0]}{nums.length > 1 ? `–${nums[nums.length-1]}` : ''}</span>}
@@ -174,7 +189,7 @@ function DonorReceiptsModal({ donations, onClose, onRenumber, renumbering }) {
                   <button
                     className="btn btn-outline btn-sm"
                     style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-                    onClick={() => printAllReceipts(sorted)}
+                    onClick={() => { printAllReceipts(sorted); markDonorIssued(name); setIssued(getIssuedDonors()); }}
                   >
                     🖨️ PDF
                   </button>
@@ -187,15 +202,16 @@ function DonorReceiptsModal({ donations, onClose, onRenumber, renumbering }) {
           <button className="btn btn-outline" onClick={onClose}>סגור</button>
           <button
             className="btn btn-primary"
+            disabled={pendingDonors.length === 0}
             onClick={() => {
-              const allDonors = donors.map(([name, dons]) => ({
+              const allDonors = pendingDonors.map(([name, dons]) => ({
                 name,
                 dons: [...dons].sort((a,b) => (a.date||'')>(b.date||'')?1:-1)
               }));
               printDonorsSequential(allDonors);
             }}
           >
-            🖨️ הדפס הכל — תורם אחר תורם
+            🖨️ הדפס ממתינים ({pendingDonors.length})
           </button>
         </div>
       </div>
@@ -203,8 +219,17 @@ function DonorReceiptsModal({ donations, onClose, onRenumber, renumbering }) {
   );
 }
 
+const ISSUED_KEY = 'halichot_olam_issued_donors';
+function getIssuedDonors() {
+  try { return new Set(JSON.parse(localStorage.getItem(ISSUED_KEY) || '[]')); } catch { return new Set(); }
+}
+function markDonorIssued(name) {
+  const s = getIssuedDonors(); s.add(name);
+  localStorage.setItem(ISSUED_KEY, JSON.stringify([...s]));
+}
+
 function printDonorsSequential(allDonors) {
-  if (!allDonors.length) return;
+  if (!allDonors.length) return alert('אין תורמים חדשים להדפסה');
   let idx = 0;
 
   function openCurrent(win) {
@@ -239,20 +264,23 @@ function printDonorsSequential(allDonors) {
       <script>window.onload=()=>{
         var nb=document.getElementById('next-btn');
         if(nb) nb.onclick=function(){window.__goNext&&window.__goNext();};
-        ${!isLast ? `window.addEventListener('afterprint',function(){
-          setTimeout(function(){window.__goNext&&window.__goNext();},400);
-        });` : ''}
+        window.addEventListener('afterprint',function(){
+          try{ if(window.opener&&window.opener.__markDonorIssued) window.opener.__markDonorIssued('${name.replace(/'/g,"\\'")}'); }catch(e){}
+          ${!isLast ? `setTimeout(function(){window.__goNext&&window.__goNext();},400);` : ''}
+        });
       };<\/script>
       </body></html>`);
     win.document.close();
 
     if (!isLast) {
-      win.__goNext = () => {
-        idx++;
-        openCurrent(win);
-      };
+      win.__goNext = () => { idx++; openCurrent(win); };
     }
   }
+
+  window.__markDonorIssued = (name) => {
+    markDonorIssued(name);
+    window.dispatchEvent(new CustomEvent('issued-update'));
+  };
 
   const win = window.open('', '_blank');
   openCurrent(win);
