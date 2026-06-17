@@ -36,23 +36,28 @@ function sendWhatsApp(d, donors) {
   window.open(url, '_blank');
 }
 
+const LOGO_URL = 'https://malkielnili.github.io/halichot-olam/logo.png';
+
 const RECEIPT_STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Heebo', sans-serif; direction: rtl; color: #1a2744; background: #fff; }
   .receipt { max-width: 480px; margin: 40px auto; border: 2px solid #b8973a; border-radius: 12px; overflow: hidden; }
-  .header { background: #1a2744; color: white; padding: 24px; text-align: center; }
-  .org { font-size: 22px; font-weight: 700; }
-  .org-sub { font-size: 13px; opacity: 0.7; margin-top: 4px; }
+  .header { background: #1a2744; color: white; padding: 20px 24px; text-align: center; }
+  .header-logo { width: 60px; height: 60px; object-fit: contain; border-radius: 50%; background: #fff; padding: 6px; margin-bottom: 10px; }
+  .org { font-size: 20px; font-weight: 700; }
+  .org-reg { font-size: 11px; opacity: 0.55; margin-top: 2px; letter-spacing: 0.4px; }
+  .org-sub { font-size: 12px; opacity: 0.65; margin-top: 3px; }
   .receipt-title { background: #b8973a; color: white; text-align: center; padding: 10px; font-size: 18px; font-weight: 700; letter-spacing: 2px; }
   .body { padding: 28px; }
   table { width: 100%; border-collapse: collapse; margin-top: 8px; }
   td { padding: 10px 8px; border-bottom: 1px solid #e2e0dc; font-size: 15px; }
-  td:first-child { color: #6b6762; width: 40%; }
+  td:first-child { color: #6b6762; width: 42%; }
   td:last-child { font-weight: 600; }
   .amount-row td:last-child { font-size: 22px; color: #2a6b4a; font-weight: 700; }
-  .footer { text-align: center; padding: 16px; font-size: 12px; color: #9e9b95; border-top: 1px solid #e2e0dc; }
-  .thankyou { text-align: center; padding: 20px 28px 0; font-size: 14px; color: #6b6762; line-height: 1.7; }
+  .mosad-row td { font-size: 13px; background: #f0faf4; color: #2a6b4a; }
+  .footer { text-align: center; padding: 14px; font-size: 11px; color: #9e9b95; border-top: 1px solid #e2e0dc; }
+  .thankyou { text-align: center; padding: 18px 28px 0; font-size: 13px; color: #6b6762; line-height: 1.7; }
   @media print { .receipt { margin: 0 auto; border-radius: 0; page-break-after: always; } .receipt:last-child { page-break-after: avoid; } }
 `;
 
@@ -66,7 +71,9 @@ function receiptHTML(d) {
   return `
   <div class="receipt">
     <div class="header">
+      <img class="header-logo" src="${LOGO_URL}" onerror="this.style.display='none'" alt="לוגו" />
       <div class="org">תפארת מישאל</div>
+      <div class="org-reg">עמותה מס׳ 580676807</div>
       <div class="org-sub">הליכות עולם · צונץ 11, תל אביב</div>
     </div>
     <div class="receipt-title">קבלה על תרומה</div>
@@ -79,10 +86,11 @@ function receiptHTML(d) {
         <tr><td>אמצעי תשלום</td><td>${d.paymentMethod || '—'}</td></tr>
         ${ref}${bankRef}
         ${d.notes ? `<tr><td>הערות</td><td>${d.notes}</td></tr>` : ''}
+        <tr class="mosad-row"><td>קוד מוסד (סעיף 46)</td><td>26542</td></tr>
       </table>
     </div>
     <div class="thankyou">יהי רצון שתזכו לראות פרי ברכה מתרומתכם הנדיבה.</div>
-    <div class="footer">הופק: ${new Date().toLocaleDateString('he-IL')} · תפארת מישאל – הליכות עולם</div>
+    <div class="footer">הופק: ${new Date().toLocaleDateString('he-IL')} · עמותת תפארת מישאל – הליכות עולם · מס׳ 580676807</div>
   </div>`;
 }
 

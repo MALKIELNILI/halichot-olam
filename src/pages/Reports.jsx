@@ -203,8 +203,10 @@ export default function Reports() {
       *{box-sizing:border-box;margin:0;padding:0}
       body{font-family:'Heebo',sans-serif;direction:rtl;color:#1a2744;background:#fff;font-size:13px}
       .cover{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;background:#1a2744;color:#fff;padding:60px 40px;page-break-after:always}
-      .cover-org{font-size:32px;font-weight:800;margin-bottom:8px}
-      .cover-sub{font-size:16px;opacity:0.7;margin-bottom:40px}
+      .cover-logo{width:110px;height:110px;object-fit:contain;border-radius:50%;background:#fff;padding:10px;margin-bottom:20px}
+      .cover-org{font-size:32px;font-weight:800;margin-bottom:6px}
+      .cover-reg{font-size:13px;opacity:0.55;margin-bottom:4px;letter-spacing:0.5px}
+      .cover-sub{font-size:15px;opacity:0.65;margin-bottom:40px}
       .cover-title{font-size:22px;font-weight:700;background:#b8973a;padding:16px 40px;border-radius:8px;margin-bottom:24px}
       .cover-year{font-size:48px;font-weight:800;letter-spacing:4px;margin-bottom:8px}
       .cover-period{font-size:14px;opacity:0.6}
@@ -228,7 +230,9 @@ export default function Reports() {
     win.document.write(`<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8"><title>דוח שנתי ${year} – תפארת מישאל</title><style>${STYLES}</style></head><body>
 
     <div class="cover">
+      <img class="cover-logo" src="https://malkielnili.github.io/halichot-olam/logo.png" onerror="this.style.display='none'" alt="לוגו" />
       <div class="cover-org">תפארת מישאל</div>
+      <div class="cover-reg">עמותה מס׳ 580676807</div>
       <div class="cover-sub">הליכות עולם · צונץ 11, תל אביב</div>
       <div class="cover-title">דוח כספי שנתי</div>
       <div class="cover-year">${year}</div>
