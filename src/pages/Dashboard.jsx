@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useDonations, useExpenses, useScholars } from '../hooks/useFirestore';
+import { useDonations, useExpenses, useScholars, useOpeningBalance } from '../hooks/useFirestore';
 import { formatILS, sumField, monthKey, heMonthYear } from '../utils/helpers';
 
 export default function Dashboard() {
@@ -14,7 +14,7 @@ export default function Dashboard() {
     return d.toISOString().slice(0, 7);
   })();
 
-  const openingBalance = parseFloat(localStorage.getItem('halichot_olam_opening_balance') || '0');
+  const { value: openingBalance } = useOpeningBalance();
   const totalDonations = useMemo(() => sumField(donations, 'amountILS'), [donations]);
   const totalExpenses  = useMemo(() => sumField(expenses, 'amount'), [expenses]);
   const balance        = openingBalance + totalDonations - totalExpenses;

@@ -1,18 +1,18 @@
 import React, { useRef, useState } from 'react';
-
-const DONORS_KEY   = 'halichot_olam_donors';
-const OB_KEY       = 'halichot_olam_opening_balance';
+import { useDonors, useOpeningBalance } from '../hooks/useFirestore';
 
 export default function Settings() {
   const fileRef = useRef();
   const [msg, setMsg] = useState('');
-  const [ob, setOb]   = useState(() => localStorage.getItem(OB_KEY) || '');
+  const { data: donors, add: addDonor } = useDonors();
+  const { value: ob, setOpeningBalance } = useOpeningBalance();
+  const [obInput, setObInput] = useState('');
   const [obMsg, setObMsg] = useState('');
 
-  const saveOb = () => {
-    const val = parseFloat(ob) || 0;
-    localStorage.setItem(OB_KEY, String(val));
-    window.dispatchEvent(new CustomEvent('ls-update', { detail: 'opening_balance' }));
+  React.useEffect(() => { setObInput(String(ob || '')); }, [ob]);
+
+  const saveOb = async () => {
+    await setOpeningBalance(obInput);
     setObMsg('נשמר ✓');
     setTimeout(() => setObMsg(''), 2000);
   };
@@ -21,19 +21,17 @@ export default function Settings() {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
         const incoming = JSON.parse(ev.target.result);
         if (!Array.isArray(incoming)) throw new Error('פורמט שגוי');
 
-        const existing = JSON.parse(localStorage.getItem(DONORS_KEY) || '[]');
-        const existingNames = new Set(existing.map(d => d.name?.trim()));
-
+        const existingNames = new Set(donors.map(d => d.name?.trim()));
         const newOnes = incoming.filter(d => d.name && !existingNames.has(d.name.trim()));
-        const merged = [...existing, ...newOnes];
 
-        localStorage.setItem(DONORS_KEY, JSON.stringify(merged));
-        window.dispatchEvent(new CustomEvent('ls-update', { detail: 'donors' }));
+        for (const donor of newOnes) {
+          await addDonor(donor);
+        }
 
         setMsg(`יובאו ${newOnes.length} תורמים חדשים (${incoming.length - newOnes.length} כבר קיימים)`);
       } catch {
@@ -42,15 +40,6 @@ export default function Settings() {
       e.target.value = '';
     };
     reader.readAsText(file, 'utf-8');
-  };
-
-  const clearAll = () => {
-    if (!window.confirm('למחוק את כל נתוני האפליקציה? פעולה זו אינה הפיכה.')) return;
-    ['donors','donations','expenses','scholars'].forEach(k =>
-      localStorage.removeItem(`halichot_olam_${k}`)
-    );
-    window.dispatchEvent(new CustomEvent('ls-update'));
-    setMsg('כל הנתונים נמחקו');
   };
 
   return (
@@ -122,24 +111,14 @@ export default function Settings() {
               <input
                 className="form-control"
                 type="number"
-                value={ob}
-                onChange={e => setOb(e.target.value)}
+                value={obInput}
+                onChange={e => setObInput(e.target.value)}
                 placeholder="סכום בש״ח"
                 style={{ maxWidth: 200 }}
               />
               <button className="btn btn-primary" onClick={saveOb}>שמור</button>
               {obMsg && <span style={{ color: 'var(--green)', fontWeight: 700 }}>{obMsg}</span>}
             </div>
-          </div>
-        </div>
-
-        <div className="card" style={{ maxWidth: 600, marginTop: 20, borderColor: 'var(--red)' }}>
-          <div className="card-header"><h2 style={{ color: 'var(--red)' }}>מחיקת כל הנתונים</h2></div>
-          <div className="card-body">
-            <p style={{ color: 'var(--gray-600)', fontSize: '0.88rem', marginBottom: 16 }}>
-              מוחק את כל התורמים, התרומות, ההוצאות והאברכים. לא ניתן לשחזר.
-            </p>
-            <button className="btn btn-danger" onClick={clearAll}>מחק הכל</button>
           </div>
         </div>
       </div>

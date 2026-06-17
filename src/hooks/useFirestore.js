@@ -83,3 +83,26 @@ export function useDonations() { return useCollection('donations', 'date'); }
 export function useDonors()    { return useCollection('donors', 'name'); }
 export function useExpenses()  { return useCollection('expenses', 'date'); }
 export function useScholars()  { return useCollection('scholars', 'name'); }
+
+export function useOpeningBalance() {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    const lsVal = localStorage.getItem('halichot_olam_opening_balance');
+    const metaRef = ref(db, `${FB_ROOT}/meta/openingBalance`);
+    if (lsVal) {
+      get(metaRef).then(snap => {
+        if (!snap.exists()) set(metaRef, parseFloat(lsVal) || 0);
+        localStorage.removeItem('halichot_olam_opening_balance');
+      });
+    }
+    const unsub = onValue(metaRef, snap => setValue(snap.val() || 0));
+    return () => unsub();
+  }, []);
+
+  const setOpeningBalance = useCallback(async (val) => {
+    await set(ref(db, `${FB_ROOT}/meta/openingBalance`), parseFloat(val) || 0);
+  }, []);
+
+  return { value, setOpeningBalance };
+}
