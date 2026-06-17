@@ -239,6 +239,9 @@ function printDonorsSequential(allDonors) {
       <script>window.onload=()=>{
         var nb=document.getElementById('next-btn');
         if(nb) nb.onclick=function(){window.__goNext&&window.__goNext();};
+        ${!isLast ? `window.addEventListener('afterprint',function(){
+          setTimeout(function(){window.__goNext&&window.__goNext();},400);
+        });` : ''}
       };<\/script>
       </body></html>`);
     win.document.close();
