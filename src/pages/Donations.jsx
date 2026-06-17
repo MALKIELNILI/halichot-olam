@@ -64,8 +64,9 @@ const RECEIPT_STYLES = `
 
 function receiptHTML(d) {
   const amt = parseFloat(d.amountILS || d.amount || 0).toLocaleString('he-IL');
-  const ref = d.reference ? `<tr><td>אסמכתא</td><td>${d.reference}</td></tr>` : '';
-  const bankRef = d.bankRef && !d.reference ? `<tr><td>אסמכתא</td><td>${d.bankRef}</td></tr>` : '';
+  const refDisplay = d.reference || d.bankRef || '';
+  const ref = refDisplay ? `<tr><td>מס׳ אסמכתא</td><td>${refDisplay}</td></tr>` : '';
+  const bankRef = '';
   const numBadge = d.receiptNumber
     ? `<div style="text-align:center;padding:6px;background:#f8f5ef;font-size:13px;color:#6b6762;">מספר קבלה: <strong style="color:#1a2744;font-size:15px;">${formatReceiptNum(d.receiptNumber)}</strong></div>`
     : '';
