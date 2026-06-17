@@ -36,7 +36,7 @@ function sendWhatsApp(d, donors) {
   window.open(url, '_blank');
 }
 
-const LOGO_URL = 'https://malkielnili.github.io/halichot-olam/logo.png';
+const LOGO_URL = 'https://malkielnili.github.io/halichot-olam/logo.jpg';
 
 const RECEIPT_STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700&display=swap');
